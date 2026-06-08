@@ -1,189 +1,285 @@
 package techecommerce1.gui;
 
-
 import javax.swing.*;
+import javax.swing.border.*;
 import java.awt.*;
+import java.awt.event.*;
+import java.awt.geom.*;
 
 /**
- * Login screen for the Tech E-commerce Platform.
- * Allows users to enter their email and password to access the system
+ * Login screen – dark, modern tech aesthetic.
  */
 public class LoginFrame extends JFrame {
 
+    // ── Palette ──────────────────────────────────────────────────
+    static final Color BG_DARK    = new Color(10, 12, 20);
+    static final Color BG_CARD    = new Color(18, 22, 38);
+    static final Color ACCENT     = new Color(0, 200, 255);
+    static final Color ACCENT2    = new Color(100, 60, 255);
+    static final Color TEXT_MAIN  = new Color(220, 230, 255);
+    static final Color TEXT_DIM   = new Color(100, 120, 160);
+    static final Color BORDER_C   = new Color(40, 55, 90);
+    static final Color ERROR_C    = new Color(255, 70, 100);
+    static final Color SUCCESS_C  = new Color(0, 220, 140);
+
     // ── Components ───────────────────────────────────────────────
-    private JTextField emailField;
+    private JTextField     emailField;
     private JPasswordField passwordField;
-    private JButton loginButton;
-    private JButton clearButton;
-    private JLabel statusLabel;
+    private JComboBox<String> roleBox;
+    private JLabel         statusLabel;
 
-    // ── Constructor ──────────────────────────────────────────────
-    /**
-     * Constructs and displays the Login window.
-     */
     public LoginFrame() {
-        setTitle("Tech E-commerce Platform — Login");
-        setSize(420, 320);
+        setTitle("TechCommerce — Login");
+        setSize(460, 460);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLocationRelativeTo(null); // center on screen
+        setLocationRelativeTo(null);
         setResizable(false);
-
+        setBackground(BG_DARK);
         initComponents();
     }
 
-    // ── UI Setup ─────────────────────────────────────────────────
-    /**
-     * Initializes and arranges all UI components.
-     */
     private void initComponents() {
-        // ── Main panel with padding
-        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 30, 20, 30));
-        mainPanel.setBackground(new Color(245, 248, 255));
+        // Root panel with custom painting
+        JPanel root = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                // Background gradient
+                GradientPaint gp = new GradientPaint(0, 0, BG_DARK, getWidth(), getHeight(),
+                        new Color(15, 18, 40));
+                g2.setPaint(gp);
+                g2.fillRect(0, 0, getWidth(), getHeight());
+                // Accent glow top-left
+                RadialGradientPaint rg = new RadialGradientPaint(60, 60, 120,
+                        new float[]{0f, 1f},
+                        new Color[]{new Color(0, 200, 255, 30), new Color(0, 0, 0, 0)});
+                g2.setPaint(rg);
+                g2.fillRect(0, 0, getWidth(), getHeight());
+            }
+        };
+        root.setBorder(BorderFactory.createEmptyBorder(30, 40, 25, 40));
 
-        // ── Title
-        JLabel titleLabel = new JLabel("Tech E-Commerce", SwingConstants.CENTER);
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 22));
-        titleLabel.setForeground(new Color(30, 80, 160));
-        mainPanel.add(titleLabel, BorderLayout.NORTH);
+        // ── Header
+        JPanel header = new JPanel(new BorderLayout());
+        header.setOpaque(false);
 
-        // ── Form panel
-        JPanel formPanel = new JPanel(new GridBagLayout());
-        formPanel.setBackground(new Color(245, 248, 255));
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(8, 5, 8, 5);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
+        JLabel logo = new JLabel("⬡ TechCommerce");
+        logo.setFont(new Font("Monospaced", Font.BOLD, 22));
+        logo.setForeground(ACCENT);
 
-        // Email label
-        gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0.3;
-        formPanel.add(new JLabel("Email:"), gbc);
+        JLabel sub = new JLabel("Enterprise Platform v2.0");
+        sub.setFont(new Font("Monospaced", Font.PLAIN, 11));
+        sub.setForeground(TEXT_DIM);
 
-        // Email field
-        gbc.gridx = 1; gbc.weightx = 0.7;
-        emailField = new JTextField(18);
-        emailField.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        formPanel.add(emailField, gbc);
+        JPanel logoPanel = new JPanel(new GridLayout(2, 1, 0, 2));
+        logoPanel.setOpaque(false);
+        logoPanel.add(logo);
+        logoPanel.add(sub);
+        header.add(logoPanel, BorderLayout.WEST);
+        root.add(header, BorderLayout.NORTH);
 
-        // Password label
-        gbc.gridx = 0; gbc.gridy = 1; gbc.weightx = 0.3;
-        formPanel.add(new JLabel("Password:"), gbc);
+        // ── Card
+        JPanel card = new JPanel(new GridBagLayout()) {
+            @Override protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(BG_CARD);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
+                g2.setColor(BORDER_C);
+                g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 16, 16);
+            }
+        };
+        card.setOpaque(false);
+        card.setBorder(BorderFactory.createEmptyBorder(24, 28, 24, 28));
 
-        // Password field
-        gbc.gridx = 1; gbc.weightx = 0.7;
+        GridBagConstraints gc = new GridBagConstraints();
+        gc.fill = GridBagConstraints.HORIZONTAL;
+        gc.insets = new Insets(7, 0, 7, 0);
+
+        // Sign-in label
+        JLabel signIn = new JLabel("Sign In");
+        signIn.setFont(new Font("Monospaced", Font.BOLD, 17));
+        signIn.setForeground(TEXT_MAIN);
+        gc.gridx = 0; gc.gridy = 0; gc.gridwidth = 2;
+        card.add(signIn, gc);
+
+        gc.gridwidth = 1; gc.insets = new Insets(6, 0, 4, 8);
+
+        // Email
+        gc.gridx = 0; gc.gridy = 1; gc.weightx = 0.3;
+        card.add(makeLabel("Email"), gc);
+        gc.gridx = 1; gc.weightx = 0.7;
+        emailField = makeDarkField(18);
+        card.add(emailField, gc);
+
+        // Password
+        gc.gridx = 0; gc.gridy = 2; gc.weightx = 0.3;
+        card.add(makeLabel("Password"), gc);
+        gc.gridx = 1; gc.weightx = 0.7;
         passwordField = new JPasswordField(18);
-        passwordField.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        formPanel.add(passwordField, gbc);
+        styleField(passwordField);
+        card.add(passwordField, gc);
 
-        // Role selector
-        gbc.gridx = 0; gbc.gridy = 2; gbc.weightx = 0.3;
-        formPanel.add(new JLabel("Login as:"), gbc);
+        // Role
+        gc.gridx = 0; gc.gridy = 3; gc.weightx = 0.3;
+        card.add(makeLabel("Role"), gc);
+        gc.gridx = 1; gc.weightx = 0.7;
+        roleBox = new JComboBox<>(new String[]{"Customer", "Admin"});
+        roleBox.setBackground(new Color(25, 32, 55));
+        roleBox.setForeground(TEXT_MAIN);
+        roleBox.setFont(new Font("Monospaced", Font.PLAIN, 13));
+        roleBox.setBorder(BorderFactory.createLineBorder(BORDER_C));
+        card.add(roleBox, gc);
 
-        gbc.gridx = 1; gbc.weightx = 0.7;
-        JComboBox<String> roleBox = new JComboBox<>(new String[]{"Customer", "Admin"});
-        roleBox.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        formPanel.add(roleBox, gbc);
+        // Buttons row
+        gc.gridx = 0; gc.gridy = 4; gc.gridwidth = 2; gc.insets = new Insets(14, 0, 4, 0);
+        JPanel btnRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 12, 0));
+        btnRow.setOpaque(false);
+        JButton loginBtn = makeAccentButton("→  Sign In", ACCENT, BG_DARK);
+        JButton clearBtn = makeGhostButton("Clear");
+        loginBtn.addActionListener(e -> handleLogin());
+        clearBtn.addActionListener(e -> clearFields());
+        btnRow.add(loginBtn);
+        btnRow.add(clearBtn);
+        card.add(btnRow, gc);
 
-        mainPanel.add(formPanel, BorderLayout.CENTER);
-
-        // ── Button panel
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 5));
-        buttonPanel.setBackground(new Color(245, 248, 255));
-
-        loginButton = new JButton("Login");
-        loginButton.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        loginButton.setBackground(new Color(30, 80, 160));
-        loginButton.setForeground(Color.WHITE);
-        loginButton.setFocusPainted(false);
-        loginButton.setPreferredSize(new Dimension(100, 35));
-
-        clearButton = new JButton("Clear");
-        clearButton.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        clearButton.setPreferredSize(new Dimension(100, 35));
-
+        // Status
+        gc.gridy = 5; gc.insets = new Insets(4, 0, 0, 0);
         statusLabel = new JLabel("", SwingConstants.CENTER);
-        statusLabel.setForeground(Color.RED);
-        statusLabel.setFont(new Font("Segoe UI", Font.ITALIC, 12));
+        statusLabel.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        statusLabel.setForeground(ERROR_C);
+        card.add(statusLabel, gc);
 
-        buttonPanel.add(loginButton);
-        buttonPanel.add(clearButton);
+        root.add(card, BorderLayout.CENTER);
 
-        JPanel southPanel = new JPanel(new BorderLayout());
-        southPanel.setBackground(new Color(245, 248, 255));
-        southPanel.add(buttonPanel, BorderLayout.CENTER);
-        southPanel.add(statusLabel, BorderLayout.SOUTH);
+        // Footer
+        JLabel footer = new JLabel("© 2026 TechCommerce Inc. All rights reserved.", SwingConstants.CENTER);
+        footer.setFont(new Font("Monospaced", Font.PLAIN, 10));
+        footer.setForeground(TEXT_DIM);
+        footer.setBorder(BorderFactory.createEmptyBorder(12, 0, 0, 0));
+        root.add(footer, BorderLayout.SOUTH);
 
-        mainPanel.add(southPanel, BorderLayout.SOUTH);
+        add(root);
 
-        add(mainPanel);
-
-        // ── Action Listeners
-        loginButton.addActionListener(e -> handleLogin(roleBox));
-        clearButton.addActionListener(e -> clearFields());
-
-        // Press Enter to login
-        passwordField.addActionListener(e -> handleLogin(roleBox));
+        passwordField.addActionListener(e -> handleLogin());
     }
 
-    // ── Event Handlers ───────────────────────────────────────────
-    /**
-     * Handles login button click.
-     * Validates input and opens the appropriate dashboard.
-     *
-     * @param roleBox the role combo box
-     */
-    private void handleLogin(JComboBox<String> roleBox) {
+    // ── Helpers ──────────────────────────────────────────────────
+    private JLabel makeLabel(String text) {
+        JLabel l = new JLabel(text + ":");
+        l.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        l.setForeground(TEXT_DIM);
+        return l;
+    }
+
+    private JTextField makeDarkField(int cols) {
+        JTextField f = new JTextField(cols);
+        styleField(f);
+        return f;
+    }
+
+    private void styleField(JTextField f) {
+        f.setBackground(new Color(25, 32, 55));
+        f.setForeground(TEXT_MAIN);
+        f.setCaretColor(ACCENT);
+        f.setFont(new Font("Monospaced", Font.PLAIN, 13));
+        f.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_C),
+                BorderFactory.createEmptyBorder(5, 8, 5, 8)));
+    }
+
+    static JButton makeAccentButton(String text, Color bg, Color fg) {
+        JButton b = new JButton(text) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                if (getModel().isPressed()) g2.setColor(bg.darker());
+                else if (getModel().isRollover()) g2.setColor(bg.brighter());
+                else g2.setColor(bg);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                g2.setColor(fg);
+                FontMetrics fm = g2.getFontMetrics();
+                int x = (getWidth() - fm.stringWidth(getText())) / 2;
+                int y = (getHeight() + fm.getAscent() - fm.getDescent()) / 2;
+                g2.drawString(getText(), x, y);
+            }
+        };
+        b.setFont(new Font("Monospaced", Font.BOLD, 13));
+        b.setForeground(fg);
+        b.setBackground(bg);
+        b.setFocusPainted(false);
+        b.setBorderPainted(false);
+        b.setContentAreaFilled(false);
+        b.setPreferredSize(new Dimension(130, 36));
+        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return b;
+    }
+
+    static JButton makeGhostButton(String text) {
+        JButton b = new JButton(text) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                Color border = new Color(60, 80, 130);
+                g2.setColor(getModel().isRollover() ? new Color(30, 40, 70) : new Color(20, 28, 50));
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                g2.setColor(border);
+                g2.drawRoundRect(0, 0, getWidth()-1, getHeight()-1, 8, 8);
+                g2.setColor(new Color(180, 200, 240));
+                FontMetrics fm = g2.getFontMetrics();
+                int x = (getWidth() - fm.stringWidth(getText())) / 2;
+                int y = (getHeight() + fm.getAscent() - fm.getDescent()) / 2;
+                g2.drawString(getText(), x, y);
+            }
+        };
+        b.setFont(new Font("Monospaced", Font.PLAIN, 13));
+        b.setFocusPainted(false);
+        b.setBorderPainted(false);
+        b.setContentAreaFilled(false);
+        b.setPreferredSize(new Dimension(90, 36));
+        b.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return b;
+    }
+
+    // ── Handlers ─────────────────────────────────────────────────
+    private void handleLogin() {
         String email    = emailField.getText().trim();
         String password = new String(passwordField.getPassword()).trim();
         String role     = (String) roleBox.getSelectedItem();
 
-        // Basic validation
         if (email.isEmpty() || password.isEmpty()) {
-            statusLabel.setText("Please enter email and password.");
+            statusLabel.setForeground(ERROR_C);
+            statusLabel.setText("⚠  Email and password are required.");
             return;
         }
-
         if (!email.contains("@")) {
-            statusLabel.setText("Please enter a valid email address.");
+            statusLabel.setForeground(ERROR_C);
+            statusLabel.setText("⚠  Enter a valid email address.");
             return;
         }
 
-        // Simulate successful login (replace with DB check later)
-        statusLabel.setForeground(new Color(0, 128, 0));
-        statusLabel.setText("Login successful! Welcome, " + role + ".");
+        statusLabel.setForeground(SUCCESS_C);
+        statusLabel.setText("✔  Authenticated — opening dashboard…");
 
-        // Open main dashboard
         SwingUtilities.invokeLater(() -> {
             new MainDashboard(email, role).setVisible(true);
-            dispose(); // close login window
+            dispose();
         });
     }
 
-    /**
-     * Clears the email and password fields.
-     */
     private void clearFields() {
         emailField.setText("");
         passwordField.setText("");
         statusLabel.setText("");
-        statusLabel.setForeground(Color.RED);
         emailField.requestFocus();
     }
 
-    // ── Main ─────────────────────────────────────────────────────
-    /**
-     * Application entry point.
-     *
-     * @param args command-line arguments (not used)
-     */
     public static void main(String[] args) {
-        // Use system look and feel
-        try {
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        try { UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName()); }
+        catch (Exception ignored) {}
         SwingUtilities.invokeLater(() -> new LoginFrame().setVisible(true));
     }
 }
-
-

@@ -1,191 +1,225 @@
 package techecommerce1.gui;
 
 import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
+import javax.swing.table.*;
 import java.awt.*;
+import java.awt.event.*;
+
+import static techecommerce1.gui.LoginFrame.*;
 
 /**
- * Screen that displays all available products in a table.
- * Admin users see an additional Delete button */
+ * Product catalog — dark theme, searchable table.
+ */
 public class ProductListFrame extends JFrame {
 
-    // ── Components ───────────────────────────────────────────────
     private JTable productTable;
     private DefaultTableModel tableModel;
     private JTextField searchField;
     private String userRole;
 
-    // ── Constructor ──────────────────────────────────────────────
-    /**
-     * Constructs the ProductListFrame.
-     *
-     * @param userRole "Customer" or "Admin"
-     */
     public ProductListFrame(String userRole) {
         this.userRole = userRole;
-        setTitle("Browse Products");
-        setSize(700, 450);
+        setTitle("TechCommerce — Browse Products");
+        setSize(780, 520);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-
+        setBackground(BG_DARK);
         initComponents();
         loadSampleData();
     }
 
-    // ── UI Setup ─────────────────────────────────────────────────
-    /**
-     * Initializes all UI components for the product list.
-     */
     private void initComponents() {
-        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        JPanel root = new JPanel(new BorderLayout(0, 0));
+        root.setBackground(BG_DARK);
+        root.setBorder(BorderFactory.createEmptyBorder(18, 20, 18, 20));
 
-        // ── Title
-        JLabel title = new JLabel("Available Products", SwingConstants.CENTER);
-        title.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        title.setForeground(new Color(30, 80, 160));
-        mainPanel.add(title, BorderLayout.NORTH);
+        // Title bar
+        JPanel titleBar = new JPanel(new BorderLayout());
+        titleBar.setOpaque(false);
+        titleBar.setBorder(BorderFactory.createEmptyBorder(0, 0, 14, 0));
 
-        // ── Search bar
-        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        searchField = new JTextField(20);
-        searchField.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        JButton searchBtn = new JButton("Search");
-        searchBtn.setBackground(new Color(30, 80, 160));
-        searchBtn.setForeground(Color.WHITE);
-        searchBtn.setFocusPainted(false);
-        searchPanel.add(new JLabel("Search: "));
-        searchPanel.add(searchField);
-        searchPanel.add(searchBtn);
+        JLabel title = new JLabel("🛍  Product Catalog");
+        title.setFont(new Font("Monospaced", Font.BOLD, 18));
+        title.setForeground(ACCENT);
+        titleBar.add(title, BorderLayout.WEST);
 
-        // ── Table
-        String[] columns = {"ID", "Name", "Brand", "Price ($)", "Category", "Stock"};
-        tableModel = new DefaultTableModel(columns, 0) {
-            @Override
-            public boolean isCellEditable(int row, int col) { return false; }
+        // Search
+        JPanel searchRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        searchRow.setOpaque(false);
+        searchField = new JTextField(18);
+        searchField.setBackground(new Color(22, 28, 48));
+        searchField.setForeground(TEXT_MAIN);
+        searchField.setCaretColor(ACCENT);
+        searchField.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        searchField.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_C),
+                BorderFactory.createEmptyBorder(4, 8, 4, 8)));
+        searchField.putClientProperty("JTextField.placeholderText", "Search products…");
+
+        JButton searchBtn = LoginFrame.makeAccentButton("Search", ACCENT, BG_DARK);
+        searchBtn.setPreferredSize(new Dimension(90, 32));
+        JButton clearSearch = LoginFrame.makeGhostButton("Reset");
+        clearSearch.setPreferredSize(new Dimension(70, 32));
+
+        searchRow.add(new JLabel("  ") {{ setForeground(TEXT_DIM); }});
+        searchRow.add(searchField);
+        searchRow.add(searchBtn);
+        searchRow.add(clearSearch);
+        titleBar.add(searchRow, BorderLayout.EAST);
+        root.add(titleBar, BorderLayout.NORTH);
+
+        // Table
+        String[] cols = {"ID", "Name", "Brand", "Price ($)", "Category", "Stock", "Status"};
+        tableModel = new DefaultTableModel(cols, 0) {
+            public boolean isCellEditable(int r, int c) { return false; }
         };
         productTable = new JTable(tableModel);
-        productTable.setRowHeight(28);
-        productTable.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        productTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 13));
-        productTable.getTableHeader().setBackground(new Color(30, 80, 160));
-        productTable.getTableHeader().setForeground(Color.WHITE);
-        productTable.setSelectionBackground(new Color(200, 220, 255));
+        productTable.setRowHeight(32);
+        productTable.setBackground(new Color(14, 18, 32));
+        productTable.setForeground(TEXT_MAIN);
+        productTable.setGridColor(new Color(30, 40, 70));
+        productTable.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        productTable.setSelectionBackground(new Color(0, 160, 220, 80));
+        productTable.setSelectionForeground(Color.WHITE);
+        productTable.setShowVerticalLines(false);
 
-        JScrollPane scrollPane = new JScrollPane(productTable);
+        JTableHeader header = productTable.getTableHeader();
+        header.setBackground(new Color(10, 130, 200));
+        header.setForeground(Color.WHITE);
+        header.setFont(new Font("Monospaced", Font.BOLD, 12));
+        header.setPreferredSize(new Dimension(0, 36));
 
-        // ── Bottom buttons
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
+        // Custom renderer for Status column
+        productTable.getColumnModel().getColumn(6).setCellRenderer(new DefaultTableCellRenderer() {
+            @Override public Component getTableCellRendererComponent(JTable t, Object v,
+                                                                     boolean sel, boolean foc, int r, int c) {
+                JLabel l = (JLabel) super.getTableCellRendererComponent(t, v, sel, foc, r, c);
+                l.setHorizontalAlignment(SwingConstants.CENTER);
+                l.setOpaque(true);
+                String s = v == null ? "" : v.toString();
+                if (s.equals("In Stock")) { l.setForeground(SUCCESS_C); l.setBackground(new Color(0, 60, 40)); }
+                else if (s.equals("Low Stock")) { l.setForeground(new Color(255, 200, 0)); l.setBackground(new Color(60, 50, 0)); }
+                else { l.setForeground(ERROR_C); l.setBackground(new Color(60, 10, 20)); }
+                if (sel) l.setBackground(l.getBackground().brighter());
+                return l;
+            }
+        });
 
-        JButton addToCartBtn = new JButton("🛒 Add to Cart");
-        addToCartBtn.setBackground(new Color(255, 140, 0));
-        addToCartBtn.setForeground(Color.WHITE);
-        addToCartBtn.setFocusPainted(false);
-        addToCartBtn.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        addToCartBtn.addActionListener(e -> handleAddToCart());
+        // Alternate row coloring
+        productTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            @Override public Component getTableCellRendererComponent(JTable t, Object v,
+                                                                     boolean sel, boolean foc, int r, int c) {
+                JLabel l = (JLabel) super.getTableCellRendererComponent(t, v, sel, foc, r, c);
+                if (c == 6) return productTable.getColumnModel().getColumn(6)
+                        .getCellRenderer().getTableCellRendererComponent(t, v, sel, foc, r, c);
+                l.setOpaque(true);
+                l.setBackground(sel ? new Color(0, 140, 200, 80) :
+                        (r % 2 == 0 ? new Color(14, 18, 32) : new Color(18, 24, 44)));
+                l.setForeground(sel ? Color.WHITE : TEXT_MAIN);
+                l.setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 8));
+                return l;
+            }
+        });
 
-        JButton closeBtn = new JButton("Close");
-        closeBtn.setFocusPainted(false);
+        JScrollPane scroll = new JScrollPane(productTable);
+        scroll.getViewport().setBackground(new Color(14, 18, 32));
+        scroll.setBorder(BorderFactory.createLineBorder(BORDER_C));
+        root.add(scroll, BorderLayout.CENTER);
+
+        // Bottom buttons
+        JPanel btnRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 12, 12));
+        btnRow.setOpaque(false);
+
+        JButton cartBtn = makeAccentButton("🛒  Add to Cart", new Color(255, 150, 0), BG_DARK);
+        cartBtn.addActionListener(e -> handleAddToCart());
+
+        JButton viewBtn = makeAccentButton("🔍  View Details", ACCENT, BG_DARK);
+        viewBtn.addActionListener(e -> handleViewDetails());
+
+        JButton closeBtn = makeGhostButton("Close");
         closeBtn.addActionListener(e -> dispose());
 
-        buttonPanel.add(addToCartBtn);
+        btnRow.add(cartBtn);
+        btnRow.add(viewBtn);
 
         if (userRole.equals("Admin")) {
-            JButton deleteBtn = new JButton("🗑 Delete Product");
-            deleteBtn.setBackground(new Color(200, 50, 50));
-            deleteBtn.setForeground(Color.WHITE);
-            deleteBtn.setFocusPainted(false);
-            deleteBtn.setFont(new Font("Segoe UI", Font.BOLD, 13));
-            deleteBtn.addActionListener(e -> handleDelete());
-            buttonPanel.add(deleteBtn);
+            JButton delBtn = makeAccentButton("🗑  Delete", new Color(220, 50, 70), BG_DARK);
+            delBtn.addActionListener(e -> handleDelete());
+            JButton editBtn = makeAccentButton("✏  Edit", new Color(100, 100, 220), BG_DARK);
+            editBtn.addActionListener(e -> showInfo("Edit Product — Coming Soon"));
+            btnRow.add(delBtn);
+            btnRow.add(editBtn);
         }
+        btnRow.add(closeBtn);
+        root.add(btnRow, BorderLayout.SOUTH);
 
-        buttonPanel.add(closeBtn);
-
-        // ── Assemble
-        JPanel centerPanel = new JPanel(new BorderLayout(5, 5));
-        centerPanel.add(searchPanel, BorderLayout.NORTH);
-        centerPanel.add(scrollPane, BorderLayout.CENTER);
-
-        mainPanel.add(centerPanel, BorderLayout.CENTER);
-        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
-        add(mainPanel);
-
-        // Search action
+        // listeners
         searchBtn.addActionListener(e -> filterTable(searchField.getText().trim()));
+        clearSearch.addActionListener(e -> { searchField.setText(""); tableModel.setRowCount(0); loadSampleData(); });
+        searchField.addActionListener(e -> filterTable(searchField.getText().trim()));
+
+        add(root);
     }
 
-    // ── Data ─────────────────────────────────────────────────────
-    /**
-     * Loads sample product data into the table for demonstration.
-     */
     private void loadSampleData() {
         Object[][] data = {
-                {"P001", "Dell XPS 15",       "Dell",    1299.99, "Laptops",    15},
-                {"P002", "MacBook Pro 14",    "Apple",   1999.00, "Laptops",     8},
-                {"P003", "Cisco Switch 24P",  "Cisco",    450.00, "Networking", 20},
-                {"P004", "Samsung 1TB SSD",   "Samsung",  129.99, "Storage",    50},
-                {"P005", "Arduino Mega",      "Arduino",   38.50, "Sensors",   100},
-                {"P006", "HP ProBook 450",    "HP",       899.00, "Laptops",    12},
-                {"P007", "Seagate 4TB HDD",   "Seagate",   89.99, "Storage",    35},
+                {"P001","Dell XPS 15",      "Dell",    1299.99,"Laptops",    15, "In Stock"},
+                {"P002","MacBook Pro 14",   "Apple",   1999.00,"Laptops",     8, "In Stock"},
+                {"P003","Cisco Switch 24P", "Cisco",    450.00,"Networking", 20, "In Stock"},
+                {"P004","Samsung 1TB SSD",  "Samsung",  129.99,"Storage",    50, "In Stock"},
+                {"P005","Arduino Mega",     "Arduino",   38.50,"Sensors",   100, "In Stock"},
+                {"P006","HP ProBook 450",   "HP",        899.00,"Laptops",    3, "Low Stock"},
+                {"P007","Seagate 4TB HDD",  "Seagate",   89.99,"Storage",    35, "In Stock"},
+                {"P008","Raspberry Pi 5",   "RPi",        80.00,"Sensors",    0, "Out of Stock"},
+                {"P009","TP-Link AX6000",   "TP-Link",  249.99,"Networking", 12, "In Stock"},
+                {"P010","Intel NUC 13",     "Intel",    599.00,"Servers",     6, "Low Stock"},
         };
         for (Object[] row : data) tableModel.addRow(row);
     }
 
-    // ── Handlers ─────────────────────────────────────────────────
-    /**
-     * Filters the product table by name or brand.
-     *
-     * @param keyword search keyword
-     */
-    private void filterTable(String keyword) {
-        // Re-load all data then filter
+    private void filterTable(String kw) {
         tableModel.setRowCount(0);
         loadSampleData();
-        if (keyword.isEmpty()) return;
-
+        if (kw.isEmpty()) return;
+        String low = kw.toLowerCase();
         for (int i = tableModel.getRowCount() - 1; i >= 0; i--) {
             String name  = tableModel.getValueAt(i, 1).toString().toLowerCase();
             String brand = tableModel.getValueAt(i, 2).toString().toLowerCase();
-            if (!name.contains(keyword.toLowerCase()) && !brand.contains(keyword.toLowerCase()))
+            String cat   = tableModel.getValueAt(i, 4).toString().toLowerCase();
+            if (!name.contains(low) && !brand.contains(low) && !cat.contains(low))
                 tableModel.removeRow(i);
         }
     }
 
-    /**
-     * Handles the "Add to Cart" button for the selected row.
-     */
     private void handleAddToCart() {
-        int selected = productTable.getSelectedRow();
-        if (selected == -1) {
-            JOptionPane.showMessageDialog(this, "Please select a product first.",
-                    "No Selection", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-        String productName = tableModel.getValueAt(selected, 1).toString();
-        JOptionPane.showMessageDialog(this,
-                productName + " added to cart successfully! 🛒",
-                "Added to Cart", JOptionPane.INFORMATION_MESSAGE);
+        int sel = productTable.getSelectedRow();
+        if (sel == -1) { JOptionPane.showMessageDialog(this,"Select a product first.","Warning",JOptionPane.WARNING_MESSAGE); return; }
+        String name = tableModel.getValueAt(sel, 1).toString();
+        String status = tableModel.getValueAt(sel, 6).toString();
+        if (status.equals("Out of Stock")) { JOptionPane.showMessageDialog(this,"This product is out of stock.","Unavailable",JOptionPane.WARNING_MESSAGE); return; }
+        JOptionPane.showMessageDialog(this, name + " added to cart! 🛒", "Cart", JOptionPane.INFORMATION_MESSAGE);
     }
 
-    /**
-     * Handles the "Delete Product" button (Admin only).
-     */
+    private void handleViewDetails() {
+        int sel = productTable.getSelectedRow();
+        if (sel == -1) { JOptionPane.showMessageDialog(this,"Select a product first.","Warning",JOptionPane.WARNING_MESSAGE); return; }
+        String info = String.format(
+                "ID: %s\nName: %s\nBrand: %s\nPrice: $%s\nCategory: %s\nStock: %s\nStatus: %s",
+                tableModel.getValueAt(sel,0), tableModel.getValueAt(sel,1),
+                tableModel.getValueAt(sel,2), tableModel.getValueAt(sel,3),
+                tableModel.getValueAt(sel,4), tableModel.getValueAt(sel,5),
+                tableModel.getValueAt(sel,6));
+        JOptionPane.showMessageDialog(this, info, "Product Details", JOptionPane.INFORMATION_MESSAGE);
+    }
+
     private void handleDelete() {
-        int selected = productTable.getSelectedRow();
-        if (selected == -1) {
-            JOptionPane.showMessageDialog(this, "Please select a product to delete.",
-                    "No Selection", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-        String productName = tableModel.getValueAt(selected, 1).toString();
-        int confirm = JOptionPane.showConfirmDialog(this,
-                "Are you sure you want to delete: " + productName + "?",
-                "Confirm Delete", JOptionPane.YES_NO_OPTION);
-        if (confirm == JOptionPane.YES_OPTION) {
-            tableModel.removeRow(selected);
-            JOptionPane.showMessageDialog(this, "Product deleted successfully.");
+        int sel = productTable.getSelectedRow();
+        if (sel == -1) { JOptionPane.showMessageDialog(this,"Select a product.","Warning",JOptionPane.WARNING_MESSAGE); return; }
+        String name = tableModel.getValueAt(sel, 1).toString();
+        if (JOptionPane.showConfirmDialog(this,"Delete: " + name + "?","Confirm",JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
+            tableModel.removeRow(sel);
         }
     }
-}
 
+    private void showInfo(String msg) { JOptionPane.showMessageDialog(this,msg,"Info",JOptionPane.INFORMATION_MESSAGE); }
+}

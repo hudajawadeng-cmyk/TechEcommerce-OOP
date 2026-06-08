@@ -16,14 +16,14 @@ public abstract class User {
 
     //Constructor ──────────────────────────────────────────────
 
-    public User(String userId, String name, String email, String password, String phoneNumber)
-    {
+    public User(String userId, String name, String email, String password, String phoneNumber) {
         this.userId = userId;
-        this.name   = name;
+        this.name = name;
         this.email = email;
         this.password = password;
         this.phoneNumber = phoneNumber;
     }
+
 
     // Abstract Method ─────────────────────────────────────────
     /**

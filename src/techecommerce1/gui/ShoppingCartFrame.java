@@ -1,169 +1,216 @@
 package techecommerce1.gui;
 
 import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
+import javax.swing.table.*;
 import java.awt.*;
 
+import static techecommerce1.gui.LoginFrame.*;
+
 /**
- * Screen displaying the customer's shopping cart.
- * Shows selected products, quantities, and total price.*/
+ * Shopping Cart — dark theme, quantity editing, promo codes.
+ */
 public class ShoppingCartFrame extends JFrame {
 
-    // ── Components ───────────────────────────────────────────────
     private JTable cartTable;
     private DefaultTableModel tableModel;
     private JLabel totalLabel;
+    private JLabel discountLabel;
+    private JTextField promoField;
 
-    // ── Constructor ──────────────────────────────────────────────
-    /**
-     * Constructs the Shopping Cart screen.
-     */
     public ShoppingCartFrame() {
-        setTitle("Shopping Cart 🛒");
-        setSize(600, 420);
+        setTitle("TechCommerce — Shopping Cart");
+        setSize(680, 480);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-
+        setBackground(BG_DARK);
         initComponents();
         loadSampleCart();
     }
 
-    // ── UI Setup ─────────────────────────────────────────────────
-    /**
-     * Initializes all UI components for the cart view.
-     */
     private void initComponents() {
-        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
-        mainPanel.setBackground(new Color(245, 248, 255));
+        JPanel root = new JPanel(new BorderLayout(0, 14));
+        root.setBackground(BG_DARK);
+        root.setBorder(BorderFactory.createEmptyBorder(18, 20, 18, 20));
 
-        // Title
-        JLabel title = new JLabel("Your Shopping Cart", SwingConstants.CENTER);
-        title.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        title.setForeground(new Color(30, 80, 160));
-        mainPanel.add(title, BorderLayout.NORTH);
+        JLabel title = new JLabel("🛒  Shopping Cart");
+        title.setFont(new Font("Monospaced", Font.BOLD, 18));
+        title.setForeground(new Color(255, 150, 0));
+        title.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
+        root.add(title, BorderLayout.NORTH);
 
-        // Table
-        String[] columns = {"Product ID", "Product Name", "Unit Price ($)", "Qty", "Subtotal ($)"};
-        tableModel = new DefaultTableModel(columns, 0) {
-            @Override
-            public boolean isCellEditable(int row, int col) { return false; }
+        // Table — Qty column is editable
+        String[] cols = {"ID", "Product", "Unit Price ($)", "Qty", "Subtotal ($)"};
+        tableModel = new DefaultTableModel(cols, 0) {
+            public boolean isCellEditable(int r, int c) { return c == 3; }
         };
+        tableModel.addTableModelListener(e -> {
+            int row = e.getFirstRow();
+            int col = e.getColumn();
+            if (col == 3 && row >= 0) {
+                try {
+                    int qty = Integer.parseInt(tableModel.getValueAt(row, 3).toString());
+                    if (qty <= 0) { tableModel.removeRow(row); } else {
+                        double unit = (double) tableModel.getValueAt(row, 2);
+                        tableModel.setValueAt(Math.round(unit * qty * 100.0) / 100.0, row, 4);
+                    }
+                    updateTotal();
+                } catch (NumberFormatException ex) { tableModel.setValueAt(1, row, 3); }
+            }
+        });
+
         cartTable = new JTable(tableModel);
-        cartTable.setRowHeight(28);
-        cartTable.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        cartTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 13));
-        cartTable.getTableHeader().setBackground(new Color(255, 140, 0));
-        cartTable.getTableHeader().setForeground(Color.WHITE);
-        cartTable.setSelectionBackground(new Color(255, 220, 180));
+        cartTable.setRowHeight(34);
+        cartTable.setBackground(new Color(14,18,32));
+        cartTable.setForeground(TEXT_MAIN);
+        cartTable.setGridColor(new Color(30,40,70));
+        cartTable.setFont(new Font("Monospaced", Font.PLAIN, 13));
+        cartTable.setSelectionBackground(new Color(200,100,0,60));
+        cartTable.setSelectionForeground(Color.WHITE);
+        cartTable.setShowVerticalLines(false);
 
-        JScrollPane scrollPane = new JScrollPane(cartTable);
+        JTableHeader th = cartTable.getTableHeader();
+        th.setBackground(new Color(180, 100, 0));
+        th.setForeground(Color.WHITE);
+        th.setFont(new Font("Monospaced", Font.BOLD, 12));
+        th.setPreferredSize(new Dimension(0, 36));
 
-        // Total label
-        totalLabel = new JLabel("Total: $0.00", SwingConstants.RIGHT);
-        totalLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
-        totalLabel.setForeground(new Color(30, 80, 160));
+        cartTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            public Component getTableCellRendererComponent(JTable t, Object v,
+                                                           boolean sel, boolean foc, int r, int c) {
+                JLabel l = (JLabel) super.getTableCellRendererComponent(t,v,sel,foc,r,c);
+                l.setOpaque(true);
+                l.setBackground(sel ? new Color(160,80,0,80) :
+                        (r%2==0 ? new Color(14,18,32) : new Color(18,24,44)));
+                l.setForeground(sel ? Color.WHITE : (c==3 ? new Color(255,200,100) : TEXT_MAIN));
+                l.setHorizontalAlignment(c >= 2 ? SwingConstants.CENTER : SwingConstants.LEFT);
+                l.setBorder(BorderFactory.createEmptyBorder(0,8,0,8));
+                return l;
+            }
+        });
 
-        // Bottom buttons
-        JPanel bottomPanel = new JPanel(new BorderLayout(10, 5));
-        bottomPanel.setBackground(new Color(245, 248, 255));
+        JScrollPane scroll = new JScrollPane(cartTable);
+        scroll.getViewport().setBackground(new Color(14,18,32));
+        scroll.setBorder(BorderFactory.createLineBorder(BORDER_C));
+        root.add(scroll, BorderLayout.CENTER);
 
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
-        buttonPanel.setBackground(new Color(245, 248, 255));
+        // ── Bottom section
+        JPanel bottom = new JPanel(new BorderLayout(0, 8));
+        bottom.setOpaque(false);
 
-        JButton removeBtn = new JButton("🗑 Remove Item");
-        removeBtn.setBackground(new Color(200, 50, 50));
-        removeBtn.setForeground(Color.WHITE);
-        removeBtn.setFocusPainted(false);
-        removeBtn.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        // Promo + totals row
+        JPanel promoRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        promoRow.setOpaque(false);
+
+        promoField = new JTextField(12);
+        promoField.setBackground(new Color(22,28,48));
+        promoField.setForeground(TEXT_MAIN);
+        promoField.setCaretColor(ACCENT);
+        promoField.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        promoField.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER_C),
+                BorderFactory.createEmptyBorder(4,8,4,8)));
+
+        JButton promoBtn = makeAccentButton("Apply Code", new Color(60,60,180), BG_DARK);
+        promoBtn.setPreferredSize(new Dimension(110, 30));
+        promoBtn.addActionListener(e -> applyPromo());
+
+        discountLabel = new JLabel("Discount: $0.00");
+        discountLabel.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        discountLabel.setForeground(SUCCESS_C);
+
+        totalLabel = new JLabel("Total: $0.00");
+        totalLabel.setFont(new Font("Monospaced", Font.BOLD, 16));
+        totalLabel.setForeground(new Color(255,150,0));
+
+        JLabel promoLbl = new JLabel("Promo:");
+        promoLbl.setForeground(TEXT_DIM);
+        promoLbl.setFont(new Font("Monospaced", Font.PLAIN, 11));
+
+        promoRow.add(promoLbl);
+        promoRow.add(promoField);
+        promoRow.add(promoBtn);
+        promoRow.add(Box.createHorizontalStrut(20));
+        promoRow.add(discountLabel);
+        promoRow.add(Box.createHorizontalStrut(10));
+        promoRow.add(totalLabel);
+        bottom.add(promoRow, BorderLayout.NORTH);
+
+        // Action buttons
+        JPanel btnRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 12, 4));
+        btnRow.setOpaque(false);
+
+        JButton removeBtn = makeAccentButton("🗑  Remove", ERROR_C, BG_DARK);
         removeBtn.addActionListener(e -> handleRemove());
 
-        JButton checkoutBtn = new JButton("✅ Checkout");
-        checkoutBtn.setBackground(new Color(30, 160, 80));
-        checkoutBtn.setForeground(Color.WHITE);
-        checkoutBtn.setFocusPainted(false);
-        checkoutBtn.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        JButton checkoutBtn = makeAccentButton("✅  Checkout", new Color(0,180,90), BG_DARK);
         checkoutBtn.addActionListener(e -> handleCheckout());
 
-        JButton closeBtn = new JButton("Close");
-        closeBtn.setFocusPainted(false);
+        JButton clearBtn = makeGhostButton("Clear All");
+        clearBtn.addActionListener(e -> {
+            if (JOptionPane.showConfirmDialog(this,"Clear entire cart?","Confirm",JOptionPane.YES_NO_OPTION)==JOptionPane.YES_OPTION) {
+                tableModel.setRowCount(0); updateTotal();
+            }
+        });
+
+        JButton closeBtn = makeGhostButton("Close");
         closeBtn.addActionListener(e -> dispose());
 
-        buttonPanel.add(removeBtn);
-        buttonPanel.add(checkoutBtn);
-        buttonPanel.add(closeBtn);
+        btnRow.add(removeBtn);
+        btnRow.add(checkoutBtn);
+        btnRow.add(clearBtn);
+        btnRow.add(closeBtn);
+        bottom.add(btnRow, BorderLayout.SOUTH);
 
-        bottomPanel.add(totalLabel, BorderLayout.NORTH);
-        bottomPanel.add(buttonPanel, BorderLayout.SOUTH);
-
-        mainPanel.add(scrollPane, BorderLayout.CENTER);
-        mainPanel.add(bottomPanel, BorderLayout.SOUTH);
-        add(mainPanel);
+        root.add(bottom, BorderLayout.SOUTH);
+        add(root);
     }
 
-    // ── Data ─────────────────────────────────────────────────────
-    /**
-     * Loads sample cart items for demonstration.
-     */
     private void loadSampleCart() {
-        Object[][] items = {
-                {"P001", "Dell XPS 15",      1299.99, 1, 1299.99},
-                {"P004", "Samsung 1TB SSD",   129.99, 2,  259.98},
-        };
-        for (Object[] row : items) tableModel.addRow(row);
+        tableModel.addRow(new Object[]{"P001","Dell XPS 15",    1299.99, 1, 1299.99});
+        tableModel.addRow(new Object[]{"P004","Samsung 1TB SSD", 129.99, 2,  259.98});
         updateTotal();
     }
 
-    /**
-     * Recalculates and displays the cart total.
-     */
     private void updateTotal() {
         double total = 0;
-        for (int i = 0; i < tableModel.getRowCount(); i++) {
+        for (int i = 0; i < tableModel.getRowCount(); i++)
             total += (double) tableModel.getValueAt(i, 4);
-        }
         totalLabel.setText(String.format("Total: $%.2f", total));
     }
 
-    // ── Handlers ─────────────────────────────────────────────────
-    /**
-     * Removes the selected item from the cart.
-     */
-    private void handleRemove() {
-        int selected = cartTable.getSelectedRow();
-        if (selected == -1) {
-            JOptionPane.showMessageDialog(this, "Please select an item to remove.",
-                    "No Selection", JOptionPane.WARNING_MESSAGE);
-            return;
+    private void applyPromo() {
+        String code = promoField.getText().trim().toUpperCase();
+        if (code.equals("TECH10")) {
+            discountLabel.setText("Discount: 10% applied ✔");
+            JOptionPane.showMessageDialog(this,"Promo TECH10 applied — 10% off!","Promo",JOptionPane.INFORMATION_MESSAGE);
+        } else if (code.equals("SAVE50")) {
+            discountLabel.setText("Discount: $50 off ✔");
+            JOptionPane.showMessageDialog(this,"Promo SAVE50 applied — $50 off!","Promo",JOptionPane.INFORMATION_MESSAGE);
+        } else {
+            discountLabel.setText("Discount: Invalid code");
+            discountLabel.setForeground(ERROR_C);
         }
-        String productName = tableModel.getValueAt(selected, 1).toString();
-        tableModel.removeRow(selected);
-        updateTotal();
-        JOptionPane.showMessageDialog(this,
-                productName + " removed from cart.",
-                "Removed", JOptionPane.INFORMATION_MESSAGE);
     }
 
-    /**
-     * Handles the checkout process.
-     */
+    private void handleRemove() {
+        int sel = cartTable.getSelectedRow();
+        if (sel == -1) { JOptionPane.showMessageDialog(this,"Select an item.","Warning",JOptionPane.WARNING_MESSAGE); return; }
+        tableModel.removeRow(sel);
+        updateTotal();
+    }
+
     private void handleCheckout() {
         if (tableModel.getRowCount() == 0) {
-            JOptionPane.showMessageDialog(this, "Your cart is empty!",
-                    "Empty Cart", JOptionPane.WARNING_MESSAGE);
-            return;
+            JOptionPane.showMessageDialog(this,"Your cart is empty!","Empty",JOptionPane.WARNING_MESSAGE); return;
         }
-        int confirm = JOptionPane.showConfirmDialog(this,
-                "Proceed to checkout?\n" + totalLabel.getText(),
-                "Confirm Checkout", JOptionPane.YES_NO_OPTION);
-        if (confirm == JOptionPane.YES_OPTION) {
+        if (JOptionPane.showConfirmDialog(this,
+                "Confirm checkout?\n" + totalLabel.getText(),
+                "Checkout", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
             tableModel.setRowCount(0);
             updateTotal();
             JOptionPane.showMessageDialog(this,
-                    "Order placed successfully! 🎉\nYou will receive a confirmation email.",
+                    "🎉 Order placed! You'll receive a confirmation email.",
                     "Order Confirmed", JOptionPane.INFORMATION_MESSAGE);
         }
     }
 }
-
-
