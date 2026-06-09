@@ -1,19 +1,20 @@
 package techecommerce1.gui;
 
+import techecommerce1.db.DatabaseManager;
+
 import javax.swing.*;
 import java.awt.*;
 
 import static techecommerce1.gui.LoginFrame.*;
 
-/**
- * Add New Product form — dark theme.
- */
 public class AddProductFrame extends JFrame {
 
     private JTextField idField, nameField, brandField, priceField, stockField, specsField;
     private JComboBox<String> categoryBox;
+    private DatabaseManager db;
 
     public AddProductFrame() {
+        this.db = DatabaseManager.getInstance();
         setTitle("TechCommerce — Add New Product");
         setSize(480, 460);
         setLocationRelativeTo(null);
@@ -34,7 +35,6 @@ public class AddProductFrame extends JFrame {
         title.setBorder(BorderFactory.createEmptyBorder(0,0,8,0));
         root.add(title, BorderLayout.NORTH);
 
-        // Card
         JPanel card = new JPanel(new GridBagLayout()) {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g;
@@ -53,57 +53,43 @@ public class AddProductFrame extends JFrame {
         gc.insets = new Insets(7,0,7,10);
 
         String[] labels = {"Product ID","Name","Brand","Price ($)","Category","Stock","Specifications"};
-        idField       = darkField();
-        nameField     = darkField();
-        brandField    = darkField();
-        priceField    = darkField();
-        categoryBox   = new JComboBox<>(new String[]{"Laptops","Networking","Storage","Sensors","Servers","Other"});
+        idField    = darkField(); nameField  = darkField(); brandField = darkField();
+        priceField = darkField(); stockField = darkField(); specsField = darkField();
+        categoryBox = new JComboBox<>(new String[]{"Laptops","Networking","Storage","Sensors","Servers","Other"});
         categoryBox.setBackground(new Color(25,32,55));
         categoryBox.setForeground(TEXT_MAIN);
-        categoryBox.setFont(new Font("Monospaced", Font.PLAIN, 12));
-        stockField    = darkField();
-        specsField    = darkField();
-        Component[] fields = {idField, nameField, brandField, priceField, categoryBox, stockField, specsField};
+        categoryBox.setFont(new Font("Monospaced",Font.PLAIN,12));
+        Component[] fields = {idField,nameField,brandField,priceField,categoryBox,stockField,specsField};
 
         for (int i = 0; i < labels.length; i++) {
             gc.gridx=0; gc.gridy=i; gc.weightx=0.35;
             JLabel l = new JLabel(labels[i]);
-            l.setFont(new Font("Monospaced", Font.PLAIN, 11));
-            l.setForeground(TEXT_DIM);
+            l.setFont(new Font("Monospaced",Font.PLAIN,11)); l.setForeground(TEXT_DIM);
             card.add(l, gc);
             gc.gridx=1; gc.weightx=0.65;
             card.add(fields[i], gc);
         }
         root.add(card, BorderLayout.CENTER);
 
-        // Buttons
         JPanel btnRow = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 12, 6));
         btnRow.setOpaque(false);
-
-        JButton saveBtn  = makeAccentButton("💾  Save",  ACCENT, BG_DARK);
-        JButton clearBtn = makeGhostButton("Clear");
+        JButton saveBtn   = makeAccentButton("💾  Save",  ACCENT, BG_DARK);
+        JButton clearBtn  = makeGhostButton("Clear");
         JButton cancelBtn = makeGhostButton("Cancel");
-        saveBtn.addActionListener(e -> handleSave());
-        clearBtn.addActionListener(e -> clearFields());
+        saveBtn  .addActionListener(e -> handleSave());
+        clearBtn .addActionListener(e -> clearFields());
         cancelBtn.addActionListener(e -> dispose());
-
-        btnRow.add(saveBtn);
-        btnRow.add(clearBtn);
-        btnRow.add(cancelBtn);
+        btnRow.add(saveBtn); btnRow.add(clearBtn); btnRow.add(cancelBtn);
         root.add(btnRow, BorderLayout.SOUTH);
-
         add(root);
     }
 
     private JTextField darkField() {
         JTextField f = new JTextField(16);
-        f.setBackground(new Color(25,32,55));
-        f.setForeground(TEXT_MAIN);
-        f.setCaretColor(ACCENT);
-        f.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        f.setBackground(new Color(25,32,55)); f.setForeground(TEXT_MAIN);
+        f.setCaretColor(ACCENT); f.setFont(new Font("Monospaced",Font.PLAIN,12));
         f.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_C),
-                BorderFactory.createEmptyBorder(5,8,5,8)));
+                BorderFactory.createLineBorder(BORDER_C), BorderFactory.createEmptyBorder(5,8,5,8)));
         return f;
     }
 
@@ -113,7 +99,7 @@ public class AddProductFrame extends JFrame {
             String name  = nameField.getText().trim();
             String brand = brandField.getText().trim();
             String specs = specsField.getText().trim();
-            int stock    = Integer.parseInt(stockField.getText().trim());
+            int    stock = Integer.parseInt(stockField.getText().trim());
             double price = Double.parseDouble(priceField.getText().trim());
             String cat   = (String) categoryBox.getSelectedItem();
 
@@ -122,8 +108,15 @@ public class AddProductFrame extends JFrame {
             if (price < 0) throw new IllegalArgumentException("Price cannot be negative.");
             if (stock < 0) throw new IllegalArgumentException("Stock cannot be negative.");
 
+            // Save to DB
+            boolean saved = false;
+            if (db.isConnected()) {
+                saved = db.addProduct(id, name, brand, price, specs, cat, stock);
+            }
+
             JOptionPane.showMessageDialog(this,
-                    "✔ Product '" + name + "' added successfully!",
+                    "✔ Product '" + name + "' added successfully!" +
+                            (saved ? "\n[Saved to database]" : "\n[Demo mode — DB not connected]"),
                     "Success", JOptionPane.INFORMATION_MESSAGE);
             clearFields();
         } catch (NumberFormatException ex) {

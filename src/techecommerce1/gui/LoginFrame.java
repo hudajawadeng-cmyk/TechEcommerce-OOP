@@ -1,5 +1,7 @@
 package techecommerce1.gui;
 
+import techecommerce1.db.DatabaseManager;
+
 import javax.swing.*;
 import javax.swing.border.*;
 import java.awt.*;
@@ -27,8 +29,10 @@ public class LoginFrame extends JFrame {
     private JPasswordField passwordField;
     private JComboBox<String> roleBox;
     private JLabel         statusLabel;
+    private DatabaseManager db;
 
     public LoginFrame() {
+        db = new DatabaseManager();
         setTitle("TechCommerce — Login");
         setSize(460, 460);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -41,8 +45,7 @@ public class LoginFrame extends JFrame {
     private void initComponents() {
         // Root panel with custom painting
         JPanel root = new JPanel(new BorderLayout()) {
-            @Override
-            protected void paintComponent(Graphics g) {
+            @Override protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
                 Graphics2D g2 = (Graphics2D) g;
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -69,14 +72,11 @@ public class LoginFrame extends JFrame {
         logo.setFont(new Font("Monospaced", Font.BOLD, 22));
         logo.setForeground(ACCENT);
 
-        JLabel sub = new JLabel("Enterprise Platform v2.0");
-        sub.setFont(new Font("Monospaced", Font.PLAIN, 11));
-        sub.setForeground(TEXT_DIM);
+
 
         JPanel logoPanel = new JPanel(new GridLayout(2, 1, 0, 2));
         logoPanel.setOpaque(false);
         logoPanel.add(logo);
-        logoPanel.add(sub);
         header.add(logoPanel, BorderLayout.WEST);
         root.add(header, BorderLayout.NORTH);
 
@@ -129,7 +129,7 @@ public class LoginFrame extends JFrame {
         gc.gridx = 1; gc.weightx = 0.7;
         roleBox = new JComboBox<>(new String[]{"Customer", "Admin"});
         roleBox.setBackground(new Color(25, 32, 55));
-        roleBox.setForeground(TEXT_MAIN);
+        roleBox.setForeground(TEXT_DIM);
         roleBox.setFont(new Font("Monospaced", Font.PLAIN, 13));
         roleBox.setBorder(BorderFactory.createLineBorder(BORDER_C));
         card.add(roleBox, gc);
@@ -156,7 +156,7 @@ public class LoginFrame extends JFrame {
         root.add(card, BorderLayout.CENTER);
 
         // Footer
-        JLabel footer = new JLabel("© 2026 TechCommerce Inc. All rights reserved.", SwingConstants.CENTER);
+        JLabel footer = new JLabel("© 2026 TechCommerce Inc.", SwingConstants.CENTER);
         footer.setFont(new Font("Monospaced", Font.PLAIN, 10));
         footer.setForeground(TEXT_DIM);
         footer.setBorder(BorderFactory.createEmptyBorder(12, 0, 0, 0));
@@ -248,7 +248,6 @@ public class LoginFrame extends JFrame {
     private void handleLogin() {
         String email    = emailField.getText().trim();
         String password = new String(passwordField.getPassword()).trim();
-        String role     = (String) roleBox.getSelectedItem();
 
         if (email.isEmpty() || password.isEmpty()) {
             statusLabel.setForeground(ERROR_C);
@@ -261,11 +260,36 @@ public class LoginFrame extends JFrame {
             return;
         }
 
-        statusLabel.setForeground(SUCCESS_C);
-        statusLabel.setText("✔  Authenticated — opening dashboard…");
+        // ── Authenticate against MySQL ──────────────────────────
+        techecommerce1.db.DatabaseManager db = techecommerce1.db.DatabaseManager.getInstance();
 
+        if (!db.isConnected()) {
+            // DB offline → allow demo login with any credentials
+            //statusLabel.setForeground(new Color(255,200,50));
+            //statusLabel.setText("⚠  DB offline — demo mode.");
+            String role = (String) roleBox.getSelectedItem();
+            SwingUtilities.invokeLater(() -> {
+                new MainDashboard(null, email, role).setVisible(true);
+                dispose();
+            });
+            return;
+        }
+
+        //String[] user = new String[]{"U0001", "Huda Emrage", "Customer"};
+        String[] user = db.authenticateUser(email, password);
+        if (user == null) {
+            statusLabel.setForeground(ERROR_C);
+            statusLabel.setText("✖  Invalid email or password.");
+            return;
+        }
+
+        // user[0]=user_id  user[1]=name  user[2]=role
+        statusLabel.setForeground(SUCCESS_C);
+        statusLabel.setText("✔  Welcome back, " + user[1] + "!");
+        String userId = user[0];
+        String role   = user[2];
         SwingUtilities.invokeLater(() -> {
-            new MainDashboard(email, role).setVisible(true);
+            new MainDashboard(userId,email, role).setVisible(true);
             dispose();
         });
     }

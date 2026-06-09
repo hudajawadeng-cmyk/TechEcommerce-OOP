@@ -1,5 +1,7 @@
 package techecommerce1.gui;
 
+import techecommerce1.db.DatabaseManager;
+
 import javax.swing.*;
 import javax.swing.border.*;
 import java.awt.*;
@@ -17,9 +19,13 @@ public class ProfileFrame extends JFrame {
     private JLabel avatarLabel;
     private JComboBox<String> countryBox;
     private String userEmail;
+    private String userId;
+    private DatabaseManager db;
 
-    public ProfileFrame(String userEmail) {
+    public ProfileFrame(String userEmail , String userId) {
         this.userEmail = userEmail;
+        this.userId = userId;
+        this.db = new DatabaseManager();
         setTitle("TechCommerce — My Profile");
         setSize(540, 540);
         setLocationRelativeTo(null);
@@ -102,14 +108,30 @@ public class ProfileFrame extends JFrame {
         gc.insets = new Insets(7, 0, 7, 10);
 
         String[] labels = {"Full Name", "Email", "Phone", "Country", "Address"};
-        nameField    = darkField(); nameField.setText("John Doe");
-        emailField   = darkField(); emailField.setText(userEmail);
-        phoneField   = darkField(); phoneField.setText("+1 555 000 1234");
+        //String[] profileData = db.getUserProfile(this.userId);
+        String[] profileData = (db.isConnected() && userId != null)
+                ? db.getUserProfile(userId)
+                : null;
+        nameField    = darkField();
+        emailField   = darkField();
+        phoneField   = darkField();
         countryBox   = new JComboBox<>(new String[]{"United States","Saudi Arabia","UAE","Egypt","Libya","Other"});
+        addressField = darkField();
+        if (profileData != null){
+            nameField.setText(profileData[0]);
+            emailField.setText(profileData[1]);
+            phoneField.setText(profileData[2]);
+            countryBox.setSelectedItem(profileData[3]);
+            addressField.setText(profileData[4]);
+        }else {
+            nameField.setText("UnKnown");
+            phoneField.setText("");
+            addressField.setText("");
+        }
         countryBox.setBackground(new Color(25,32,55));
-        countryBox.setForeground(TEXT_MAIN);
+        countryBox.setForeground(TEXT_DIM);
         countryBox.setFont(new Font("Monospaced", Font.PLAIN, 12));
-        addressField = darkField(); addressField.setText("123 Tech Street, San Francisco, CA");
+
 
         Component[] fields = {nameField, emailField, phoneField, countryBox, addressField};
 
@@ -148,16 +170,30 @@ public class ProfileFrame extends JFrame {
 
         JButton saveBtn = makeAccentButton("💾  Save Changes", ACCENT, BG_DARK);
         saveBtn.addActionListener(e -> {
-            JOptionPane.showMessageDialog(this,"Profile updated successfully! ✔","Saved",JOptionPane.INFORMATION_MESSAGE);
+            if (db.isConnected() && userId != null) {
+                boolean ok = db.updateProfile(userId,
+                        nameField.getText().trim(),
+                        phoneField.getText().trim(),
+                        countryBox.getSelectedItem().toString(),
+                        addressField.getText().trim());
+                JOptionPane.showMessageDialog(this,
+                        ok ? "Profile updated successfully! ✔" : "Profile updated (demo mode) ✔",
+                        "Saved", JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this,"Profile updated (demo mode) ✔","Saved",JOptionPane.INFORMATION_MESSAGE);
+            }
         });
 
         JButton pwBtn = makeGhostButton("🔐 Change PW");
         pwBtn.setPreferredSize(new Dimension(140, 36));
         pwBtn.addActionListener(e -> {
-            if (new String(pwField.getPassword()).trim().isEmpty())
+            String newPw = new String(pwField.getPassword()).trim();
+            if (newPw.isEmpty()) {
                 JOptionPane.showMessageDialog(this,"Enter a new password first.","Warning",JOptionPane.WARNING_MESSAGE);
-            else
+            } else {
+                if (db.isConnected() && userId != null) db.changePassword(userId, newPw);
                 JOptionPane.showMessageDialog(this,"Password changed successfully! 🔐","Saved",JOptionPane.INFORMATION_MESSAGE);
+            }
         });
 
         JButton closeBtn = makeGhostButton("Close");

@@ -13,11 +13,14 @@ import static techecommerce1.gui.LoginFrame.*;
  */
 public class MainDashboard extends JFrame {
 
+    private String userId;
     private String userEmail;
     private String userRole;
 
 
-    public MainDashboard(String userEmail, String userRole) {
+
+    public MainDashboard( String userId,String userEmail, String userRole) {
+        this.userId = userId;
         this.userEmail = userEmail;
         this.userRole  = userRole;
 
@@ -108,16 +111,16 @@ public class MainDashboard extends JFrame {
 
         grid.add(makeCard("Shopping Cart", "🛒",
                 "View items in your cart & checkout",
-                new Color(255, 150, 0), e -> new ShoppingCartFrame().setVisible(true)));
+                new Color(255, 150, 0), e -> new ShoppingCartFrame(userId).setVisible(true)));
 
         // Row 2
         grid.add(makeCard("My Orders", "📦",
                 "Track and manage your order history",
-                new Color(0, 200, 130), e -> new OrdersFrame(userEmail).setVisible(true)));
+                new Color(0, 200, 130), e -> new OrdersFrame(userEmail , userId).setVisible(true)));
 
         grid.add(makeCard("Product Reviews", "⭐",
                 "Read and write product reviews",
-                new Color(180, 80, 255), e -> new ReviewsFrame().setVisible(true)));
+                new Color(180, 80, 255), e -> new ReviewsFrame(userId).setVisible(true)));
 
         // Row 3 – role-based
         if (userRole.equals("Admin")) {
@@ -126,14 +129,14 @@ public class MainDashboard extends JFrame {
                     new Color(0, 200, 255), e -> new AddProductFrame().setVisible(true)));
             grid.add(makeCard("Manage Inventory", "📊",
                     "Monitor stock levels and alerts",
-                    new Color(100, 100, 200), e -> new InventoryFrame().setVisible(true)));
+                    new Color(100, 100, 200), e -> new InventoryFrame(userId).setVisible(true)));
         } else {
             grid.add(makeCard("My Profile", "👤",
                     "View and update your account details",
-                    new Color(0, 200, 255), e -> new ProfileFrame(userEmail).setVisible(true)));
+                    new Color(0, 200, 255), e -> new ProfileFrame(userEmail , userId).setVisible(true)));
             grid.add(makeCard("Track Shipment", "🚚",
                     "Real-time tracking for your orders",
-                    new Color(100, 100, 200), e -> new TrackShipmentFrame().setVisible(true)));
+                    new Color(100, 100, 200), e -> new TrackShipmentFrame(userId).setVisible(true)));
         }
 
         navWrap.add(grid, BorderLayout.CENTER);

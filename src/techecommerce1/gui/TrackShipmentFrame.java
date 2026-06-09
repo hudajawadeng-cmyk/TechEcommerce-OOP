@@ -16,6 +16,7 @@ public class TrackShipmentFrame extends JFrame {
     private JComboBox<String> orderBox;
     private JPanel  timelinePanel;
     private JLabel  statusBadge, etaLabel, carrierLabel, originLabel, destLabel;
+    private String userId;
 
     private static final Object[][] SHIPMENTS = {
             {"ORD-2026-003","TRK-9182736450","FedEx",  "Shanghai, CN",    "San Francisco, CA",2,"In Transit",      "2026-06-10"},
@@ -37,7 +38,8 @@ public class TrackShipmentFrame extends JFrame {
 
     private int currentStep = 2;
 
-    public TrackShipmentFrame() {
+    public TrackShipmentFrame(String userId) {
+        this.userId = userId;
         setTitle("TechCommerce — Track Shipment");
         setSize(760, 580);
         setLocationRelativeTo(null);

@@ -1,30 +1,33 @@
 package techecommerce1.gui;
 
+import techecommerce1.db.DatabaseManager;
+
 import javax.swing.*;
 import javax.swing.table.*;
 import java.awt.*;
+import java.util.List;
 
 import static techecommerce1.gui.LoginFrame.*;
 
-/**
- * Shopping Cart — dark theme, quantity editing, promo codes.
- */
 public class ShoppingCartFrame extends JFrame {
 
     private JTable cartTable;
     private DefaultTableModel tableModel;
-    private JLabel totalLabel;
-    private JLabel discountLabel;
+    private JLabel totalLabel, discountLabel;
     private JTextField promoField;
+    private String userId;
+    private DatabaseManager db;
 
-    public ShoppingCartFrame() {
+    public ShoppingCartFrame(String userId) {
+        this.userId = userId;
+        this.db  = DatabaseManager.getInstance();
         setTitle("TechCommerce — Shopping Cart");
         setSize(680, 480);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setBackground(BG_DARK);
         initComponents();
-        loadSampleCart();
+        loadCart();
     }
 
     private void initComponents() {
@@ -34,24 +37,31 @@ public class ShoppingCartFrame extends JFrame {
 
         JLabel title = new JLabel("🛒  Shopping Cart");
         title.setFont(new Font("Monospaced", Font.BOLD, 18));
-        title.setForeground(new Color(255, 150, 0));
-        title.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
+        title.setForeground(new Color(255,150,0));
+        title.setBorder(BorderFactory.createEmptyBorder(0,0,10,0));
         root.add(title, BorderLayout.NORTH);
 
-        // Table — Qty column is editable
-        String[] cols = {"ID", "Product", "Unit Price ($)", "Qty", "Subtotal ($)"};
+        // Table — Qty column editable
+        String[] cols = {"ID","Product","Unit Price ($)","Qty","Subtotal ($)"};
         tableModel = new DefaultTableModel(cols, 0) {
             public boolean isCellEditable(int r, int c) { return c == 3; }
         };
         tableModel.addTableModelListener(e -> {
-            int row = e.getFirstRow();
-            int col = e.getColumn();
+            int row = e.getFirstRow(); int col = e.getColumn();
             if (col == 3 && row >= 0) {
                 try {
-                    int qty = Integer.parseInt(tableModel.getValueAt(row, 3).toString());
-                    if (qty <= 0) { tableModel.removeRow(row); } else {
-                        double unit = (double) tableModel.getValueAt(row, 2);
-                        tableModel.setValueAt(Math.round(unit * qty * 100.0) / 100.0, row, 4);
+                    int qty = Integer.parseInt(tableModel.getValueAt(row,3).toString());
+                    if (qty <= 0) {
+                        // Remove from DB and table
+                        String pid = tableModel.getValueAt(row,0).toString();
+                        if (db.isConnected() && userId != null) db.removeFromCart(userId, pid);
+                        tableModel.removeRow(row);
+                    } else {
+                        double unit = (double) tableModel.getValueAt(row,2);
+                        tableModel.setValueAt(Math.round(unit*qty*100.0)/100.0, row, 4);
+                        // Update DB
+                        String pid = tableModel.getValueAt(row,0).toString();
+                        if (db.isConnected() && userId != null) db.updateCartQty(userId, pid, qty);
                     }
                     updateTotal();
                 } catch (NumberFormatException ex) { tableModel.setValueAt(1, row, 3); }
@@ -69,10 +79,10 @@ public class ShoppingCartFrame extends JFrame {
         cartTable.setShowVerticalLines(false);
 
         JTableHeader th = cartTable.getTableHeader();
-        th.setBackground(new Color(180, 100, 0));
+        th.setBackground(new Color(180,100,0));
         th.setForeground(Color.WHITE);
-        th.setFont(new Font("Monospaced", Font.BOLD, 12));
-        th.setPreferredSize(new Dimension(0, 36));
+        th.setFont(new Font("Monospaced",Font.BOLD,12));
+        th.setPreferredSize(new Dimension(0,36));
 
         cartTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             public Component getTableCellRendererComponent(JTable t, Object v,
@@ -82,7 +92,7 @@ public class ShoppingCartFrame extends JFrame {
                 l.setBackground(sel ? new Color(160,80,0,80) :
                         (r%2==0 ? new Color(14,18,32) : new Color(18,24,44)));
                 l.setForeground(sel ? Color.WHITE : (c==3 ? new Color(255,200,100) : TEXT_MAIN));
-                l.setHorizontalAlignment(c >= 2 ? SwingConstants.CENTER : SwingConstants.LEFT);
+                l.setHorizontalAlignment(c>=2 ? SwingConstants.CENTER : SwingConstants.LEFT);
                 l.setBorder(BorderFactory.createEmptyBorder(0,8,0,8));
                 return l;
             }
@@ -93,79 +103,77 @@ public class ShoppingCartFrame extends JFrame {
         scroll.setBorder(BorderFactory.createLineBorder(BORDER_C));
         root.add(scroll, BorderLayout.CENTER);
 
-        // ── Bottom section
-        JPanel bottom = new JPanel(new BorderLayout(0, 8));
+        // Bottom
+        JPanel bottom = new JPanel(new BorderLayout(0,8));
         bottom.setOpaque(false);
 
-        // Promo + totals row
-        JPanel promoRow = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        JPanel promoRow = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 8, 0));
         promoRow.setOpaque(false);
 
         promoField = new JTextField(12);
-        promoField.setBackground(new Color(22,28,48));
-        promoField.setForeground(TEXT_MAIN);
-        promoField.setCaretColor(ACCENT);
-        promoField.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        promoField.setBackground(new Color(22,28,48)); promoField.setForeground(TEXT_MAIN);
+        promoField.setCaretColor(ACCENT); promoField.setFont(new Font("Monospaced",Font.PLAIN,12));
         promoField.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_C),
-                BorderFactory.createEmptyBorder(4,8,4,8)));
+                BorderFactory.createLineBorder(BORDER_C), BorderFactory.createEmptyBorder(4,8,4,8)));
 
         JButton promoBtn = makeAccentButton("Apply Code", new Color(60,60,180), BG_DARK);
-        promoBtn.setPreferredSize(new Dimension(110, 30));
+        promoBtn.setPreferredSize(new Dimension(110,30));
         promoBtn.addActionListener(e -> applyPromo());
 
         discountLabel = new JLabel("Discount: $0.00");
-        discountLabel.setFont(new Font("Monospaced", Font.PLAIN, 12));
+        discountLabel.setFont(new Font("Monospaced",Font.PLAIN,12));
         discountLabel.setForeground(SUCCESS_C);
 
         totalLabel = new JLabel("Total: $0.00");
-        totalLabel.setFont(new Font("Monospaced", Font.BOLD, 16));
+        totalLabel.setFont(new Font("Monospaced",Font.BOLD,16));
         totalLabel.setForeground(new Color(255,150,0));
 
-        JLabel promoLbl = new JLabel("Promo:");
-        promoLbl.setForeground(TEXT_DIM);
-        promoLbl.setFont(new Font("Monospaced", Font.PLAIN, 11));
+        JLabel promoLbl = new JLabel("Promo:"); promoLbl.setForeground(TEXT_DIM);
+        promoLbl.setFont(new Font("Monospaced",Font.PLAIN,11));
 
-        promoRow.add(promoLbl);
-        promoRow.add(promoField);
-        promoRow.add(promoBtn);
+        promoRow.add(promoLbl); promoRow.add(promoField); promoRow.add(promoBtn);
         promoRow.add(Box.createHorizontalStrut(20));
-        promoRow.add(discountLabel);
-        promoRow.add(Box.createHorizontalStrut(10));
+        promoRow.add(discountLabel); promoRow.add(Box.createHorizontalStrut(10));
         promoRow.add(totalLabel);
         bottom.add(promoRow, BorderLayout.NORTH);
 
-        // Action buttons
-        JPanel btnRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 12, 4));
+        JPanel btnRow = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 12, 4));
         btnRow.setOpaque(false);
 
-        JButton removeBtn = makeAccentButton("🗑  Remove", ERROR_C, BG_DARK);
-        removeBtn.addActionListener(e -> handleRemove());
+        JButton removeBtn   = makeAccentButton("🗑  Remove",   ERROR_C,               BG_DARK);
+        JButton checkoutBtn = makeAccentButton("✅  Checkout", new Color(0,180,90),   BG_DARK);
+        JButton clearBtn    = makeGhostButton("Clear All");
+        JButton closeBtn    = makeGhostButton("Close");
 
-        JButton checkoutBtn = makeAccentButton("✅  Checkout", new Color(0,180,90), BG_DARK);
+        removeBtn  .addActionListener(e -> handleRemove());
         checkoutBtn.addActionListener(e -> handleCheckout());
-
-        JButton clearBtn = makeGhostButton("Clear All");
-        clearBtn.addActionListener(e -> {
+        clearBtn   .addActionListener(e -> {
             if (JOptionPane.showConfirmDialog(this,"Clear entire cart?","Confirm",JOptionPane.YES_NO_OPTION)==JOptionPane.YES_OPTION) {
+                if (db.isConnected() && userId != null) db.clearCart(userId);
                 tableModel.setRowCount(0); updateTotal();
             }
         });
-
-        JButton closeBtn = makeGhostButton("Close");
         closeBtn.addActionListener(e -> dispose());
 
-        btnRow.add(removeBtn);
-        btnRow.add(checkoutBtn);
-        btnRow.add(clearBtn);
-        btnRow.add(closeBtn);
+        btnRow.add(removeBtn); btnRow.add(checkoutBtn);
+        btnRow.add(clearBtn);  btnRow.add(closeBtn);
         bottom.add(btnRow, BorderLayout.SOUTH);
-
         root.add(bottom, BorderLayout.SOUTH);
         add(root);
     }
 
-    private void loadSampleCart() {
+    // ── DATA ─────────────────────────────────────────────────────
+    private void loadCart() {
+        tableModel.setRowCount(0);
+        if (db.isConnected() && userId != null) {
+            List<Object[]> rows = db.getCart(userId);
+            if (!rows.isEmpty()) {
+                for (Object[] r : rows) tableModel.addRow(r);
+                updateTotal();
+                return;
+            }
+        }
+        // Demo fallback
         tableModel.addRow(new Object[]{"P001","Dell XPS 15",    1299.99, 1, 1299.99});
         tableModel.addRow(new Object[]{"P004","Samsung 1TB SSD", 129.99, 2,  259.98});
         updateTotal();
@@ -174,27 +182,35 @@ public class ShoppingCartFrame extends JFrame {
     private void updateTotal() {
         double total = 0;
         for (int i = 0; i < tableModel.getRowCount(); i++)
-            total += (double) tableModel.getValueAt(i, 4);
+            total += (double) tableModel.getValueAt(i,4);
         totalLabel.setText(String.format("Total: $%.2f", total));
     }
 
+    // ── HANDLERS ─────────────────────────────────────────────────
     private void applyPromo() {
         String code = promoField.getText().trim().toUpperCase();
-        if (code.equals("TECH10")) {
-            discountLabel.setText("Discount: 10% applied ✔");
-            JOptionPane.showMessageDialog(this,"Promo TECH10 applied — 10% off!","Promo",JOptionPane.INFORMATION_MESSAGE);
-        } else if (code.equals("SAVE50")) {
-            discountLabel.setText("Discount: $50 off ✔");
-            JOptionPane.showMessageDialog(this,"Promo SAVE50 applied — $50 off!","Promo",JOptionPane.INFORMATION_MESSAGE);
-        } else {
-            discountLabel.setText("Discount: Invalid code");
-            discountLabel.setForeground(ERROR_C);
+        // Try DB first
+        if (db.isConnected()) {
+            double[] promo = db.getPromoCode(code);
+            if (promo != null) {
+                if (promo[0] == 0) discountLabel.setText("Discount: " + (int)promo[1] + "% applied ✔");
+                else               discountLabel.setText("Discount: $" + (int)promo[1] + " off ✔");
+                discountLabel.setForeground(SUCCESS_C);
+                JOptionPane.showMessageDialog(this,"Promo code applied!","Promo",JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
         }
+        // Fallback hardcoded codes
+        if (code.equals("TECH10"))      { discountLabel.setText("Discount: 10% applied ✔"); discountLabel.setForeground(SUCCESS_C); }
+        else if (code.equals("SAVE50")) { discountLabel.setText("Discount: $50 off ✔");     discountLabel.setForeground(SUCCESS_C); }
+        else                            { discountLabel.setText("Invalid code");             discountLabel.setForeground(ERROR_C);   }
     }
 
     private void handleRemove() {
         int sel = cartTable.getSelectedRow();
         if (sel == -1) { JOptionPane.showMessageDialog(this,"Select an item.","Warning",JOptionPane.WARNING_MESSAGE); return; }
+        String productId = tableModel.getValueAt(sel,0).toString();
+        if (db.isConnected() && userId != null) db.removeFromCart(userId, productId);
         tableModel.removeRow(sel);
         updateTotal();
     }
@@ -203,14 +219,28 @@ public class ShoppingCartFrame extends JFrame {
         if (tableModel.getRowCount() == 0) {
             JOptionPane.showMessageDialog(this,"Your cart is empty!","Empty",JOptionPane.WARNING_MESSAGE); return;
         }
-        if (JOptionPane.showConfirmDialog(this,
-                "Confirm checkout?\n" + totalLabel.getText(),
+        if (JOptionPane.showConfirmDialog(this,"Confirm checkout?\n"+totalLabel.getText(),
                 "Checkout", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) {
-            tableModel.setRowCount(0);
-            updateTotal();
-            JOptionPane.showMessageDialog(this,
-                    "🎉 Order placed! You'll receive a confirmation email.",
-                    "Order Confirmed", JOptionPane.INFORMATION_MESSAGE);
+            if (db.isConnected() && userId != null) {
+                double total = calcTotal();
+                String orderId = db.placeOrder(userId, total, "Default Shipping Address");
+                if (orderId != null) {
+                    tableModel.setRowCount(0); updateTotal();
+                    JOptionPane.showMessageDialog(this,
+                            "🎉 Order " + orderId + " placed!\nYou'll receive a confirmation email.",
+                            "Order Confirmed", JOptionPane.INFORMATION_MESSAGE);
+                    return;
+                }
+            }
+            // Demo fallback
+            tableModel.setRowCount(0); updateTotal();
+            JOptionPane.showMessageDialog(this,"🎉 Order placed! (Demo mode)","Order Confirmed",JOptionPane.INFORMATION_MESSAGE);
         }
+    }
+
+    private double calcTotal() {
+        double t = 0;
+        for (int i = 0; i < tableModel.getRowCount(); i++) t += (double) tableModel.getValueAt(i,4);
+        return t;
     }
 }
