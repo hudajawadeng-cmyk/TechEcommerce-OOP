@@ -34,7 +34,7 @@ public class LoginFrame extends JFrame {
     public LoginFrame() {
         db = new DatabaseManager();
         setTitle("TechCommerce — Login");
-        setSize(460, 460);
+        setSize(600, 600);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setResizable(false);
@@ -140,10 +140,13 @@ public class LoginFrame extends JFrame {
         btnRow.setOpaque(false);
         JButton loginBtn = makeAccentButton("→  Sign In", ACCENT, BG_DARK);
         JButton clearBtn = makeGhostButton("Clear");
+        JButton registerBtn = makeGhostButton("New Account");
         loginBtn.addActionListener(e -> handleLogin());
         clearBtn.addActionListener(e -> clearFields());
+        registerBtn.addActionListener(e -> new RegisterFrame().setVisible(true));
         btnRow.add(loginBtn);
         btnRow.add(clearBtn);
+        btnRow.add(registerBtn);
         card.add(btnRow, gc);
 
         // Status

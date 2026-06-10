@@ -92,6 +92,36 @@ public class DatabaseManager {
         } catch (SQLException e) { e.printStackTrace(); }
         return null;
     }
+    public boolean registerUser(String userId, String name, String email,
+                                String password, String phone,
+                                String country, String role) {
+        try {
+            // Check if email already exists
+            String checkSql = "SELECT COUNT(*) FROM users WHERE email = ?";
+            PreparedStatement checkStmt = conn.prepareStatement(checkSql);
+            checkStmt.setString(1, email);
+            ResultSet rs = checkStmt.executeQuery();
+            rs.next();
+            if (rs.getInt(1) > 0) return false; // Email already exists
+
+            // Insert new user
+            String sql = "INSERT INTO users (user_id, name, email, password, " +
+                    "phone_number, country, role) VALUES (?, ?, ?, ?, ?, ?, ?)";
+            PreparedStatement stmt = conn.prepareStatement(sql);
+            stmt.setString(1, userId);
+            stmt.setString(2, name);
+            stmt.setString(3, email);
+            stmt.setString(4, password);
+            stmt.setString(5, phone);
+            stmt.setString(6, country);
+            stmt.setString(7, role);
+            return stmt.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 
     // ╔══════════════════════════════════════════════════════════╗
     // ║  ProductListFrame + AddProductFrame                      ║
