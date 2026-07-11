@@ -1,5 +1,7 @@
 package techecommerce1.presentation;
 
+import techecommerce1.application.DashboardService;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
@@ -76,17 +78,6 @@ public class MainDashboard extends JFrame {
         roleLbl.setForeground(userRole.equals("مسؤول") ? new Color(255, 200, 50) : new Color(0, 240, 180));
         userInfo.add(emailLbl);
         userInfo.add(roleLbl);
-        JButton reportsBtn = new JButton("📊 التقارير الإحصائية");
-        if (userRole.equals("Admin")) {
-        // ابحثي عن المكان الذي تضيفين فيه الأزرار الأخرى وأضيفي هذا:
-
-        reportsBtn.addActionListener(e -> {
-            // فتح واجهة التقارير عند الضغط
-            new ReportsFrame().setVisible(true);
-        });
-
-        }
-
         JButton logoutBtn = makeGhostButton("الخروج");
         logoutBtn.addActionListener(e -> { new LoginFrame().setVisible(true); dispose(); });
 
@@ -94,23 +85,56 @@ public class MainDashboard extends JFrame {
         rightBar.setOpaque(false);
         rightBar.add(userInfo);
         rightBar.add(logoutBtn);
-        rightBar.add(reportsBtn);
+
+        if (userRole.equals("Admin")) {
+            JButton reportsBtn = new JButton("📊 التقارير الإحصائية");
+            reportsBtn.addActionListener(e -> {
+                // فتح واجهة التقارير عند الضغط
+                new ReportsFrame().setVisible(true);
+            });
+            rightBar.add(reportsBtn);
+        }
 
 
         topBar.add(logo, BorderLayout.WEST);
         topBar.add(rightBar, BorderLayout.EAST);
         root.add(topBar, BorderLayout.NORTH);
 
+        // ── STATS PANEL (لوحة الإحصائيات — يتطلبها المشروع: 3 إحصائيات على الأقل)
+        DashboardService dashboardService = new DashboardService();
+
+        JPanel statsPanel = new JPanel(new GridLayout(1, 3, 16, 0));
+        statsPanel.setOpaque(false);
+        statsPanel.setBorder(BorderFactory.createEmptyBorder(20, 24, 0, 24));
+
+        statsPanel.add(makeStatCard("📦", "إجمالي المنتجات",
+                String.valueOf(dashboardService.getTotalProducts()),
+                new Color(0, 120, 190)));
+
+        statsPanel.add(makeStatCard("💰", "إجمالي المبيعات",
+                String.format("%.2f د.ل", dashboardService.getTotalSales()),
+                new Color(0, 140, 90)));
+
+        statsPanel.add(makeStatCard("🧾", "عدد الطلبات",
+                String.valueOf(dashboardService.getTotalOrders()),
+                new Color(210, 110, 0)));
+
         // ── GRID NAV
         JPanel navWrap = new JPanel(new BorderLayout());
         navWrap.setOpaque(false);
         navWrap.setBorder(BorderFactory.createEmptyBorder(24, 24, 16, 24));
 
+        JPanel topSection = new JPanel(new BorderLayout());
+        topSection.setOpaque(false);
+        topSection.add(statsPanel, BorderLayout.NORTH);
+
         JLabel sectionTitle = new JLabel("الوصول السريع");
         sectionTitle.setFont(new Font("SansSerif", Font.BOLD, 15));
         sectionTitle.setForeground(TEXT_DIM);
-        sectionTitle.setBorder(BorderFactory.createEmptyBorder(0, 0, 14, 0));
-        navWrap.add(sectionTitle, BorderLayout.NORTH);
+        sectionTitle.setBorder(BorderFactory.createEmptyBorder(20, 0, 14, 0));
+        topSection.add(sectionTitle, BorderLayout.SOUTH);
+
+        navWrap.add(topSection, BorderLayout.NORTH);
 
         JPanel grid = new JPanel(new GridLayout(3, 2, 16, 16));
         grid.setOpaque(false);
@@ -170,6 +194,36 @@ public class MainDashboard extends JFrame {
         root.add(statusBar, BorderLayout.SOUTH);
 
         add(root);
+    }
+
+    // ── Stat card factory ────────────────────────────────────────
+    private JPanel makeStatCard(String icon, String label, String value, Color accent) {
+        JPanel card = new JPanel(new BorderLayout(0, 6)) {
+            @Override protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(new Color(255, 255, 255));
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 14, 14);
+                g2.setColor(accent);
+                g2.fillRoundRect(0, 0, 4, getHeight(), 4, 4);
+                g2.setColor(BORDER_C);
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 14, 14);
+            }
+        };
+        card.setOpaque(false);
+        card.setBorder(BorderFactory.createEmptyBorder(14, 18, 14, 14));
+
+        JLabel labelLbl = new JLabel(icon + "  " + label);
+        labelLbl.setFont(new Font("SansSerif", Font.BOLD, 13));
+        labelLbl.setForeground(TEXT_DIM);
+
+        JLabel valueLbl = new JLabel(value);
+        valueLbl.setFont(new Font("SansSerif", Font.BOLD, 24));
+        valueLbl.setForeground(accent);
+
+        card.add(labelLbl, BorderLayout.NORTH);
+        card.add(valueLbl, BorderLayout.CENTER);
+        return card;
     }
 
     // ── Card factory ─────────────────────────────────────────────

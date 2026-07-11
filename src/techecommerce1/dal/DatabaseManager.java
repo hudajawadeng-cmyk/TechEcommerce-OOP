@@ -229,7 +229,11 @@ public class DatabaseManager {
             inv.setString(1, invId); inv.setString(2, id); inv.setInt(3, stock);
             inv.executeUpdate();
             return true;
-        } catch (SQLException e) { e.printStackTrace(); return false; }
+        } catch (SQLException e) {
+            System.err.println("[DB] addProduct failed: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
     }
 
     /**
@@ -243,13 +247,14 @@ public class DatabaseManager {
         } catch (SQLException e) { e.printStackTrace(); return false; }
     }
 
+    /** يرجّع category_id المطابق للاسم، أو null إذا الفئة مش موجودة أصلاً (بدل fallback وهمي) */
     private String getCategoryId(String name) throws SQLException {
         PreparedStatement ps = conn.prepareStatement(
                 "SELECT category_id FROM categories WHERE name=?");
         ps.setString(1, name);
         ResultSet rs = ps.executeQuery();
         if (rs.next()) return rs.getString(1);
-        return "CAT01"; // default fallback
+        return null; // الفئة غير موجودة — لا نخترع category_id قد يكسر الـ Foreign Key
     }
 
     // ╔══════════════════════════════════════════════════════════╗
@@ -689,6 +694,7 @@ public class DatabaseManager {
         } catch (SQLException e) { e.printStackTrace(); }
         return list;
     }
+
     // 3. إجمالي الإيرادات (مطلوبة لتقرير المبيعات في ReportService)
     public double getTotalRevenue() {
         String sql = "SELECT COALESCE(SUM(oi.quantity * p.price), 0) AS total "
@@ -698,6 +704,38 @@ public class DatabaseManager {
         } catch (SQLException e) { e.printStackTrace(); }
         return 0.0;
     }
+
+    // ╔══════════════════════════════════════════════════════════╗
+    // ║  MainDashboard — إحصائيات سريعة                          ║
+    // ╚══════════════════════════════════════════════════════════╝
+
+    /** إجمالي عدد المنتجات في الكتالوج */
+    public int getTotalProductsCount() {
+        String sql = "SELECT COUNT(*) AS total FROM products";
+        try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
+            if (rs.next()) return rs.getInt("total");
+        } catch (SQLException e) { e.printStackTrace(); }
+        return 0;
+    }
+
+    /** إجمالي عدد الطلبات في النظام */
+    public int getTotalOrdersCount() {
+        String sql = "SELECT COUNT(*) AS total FROM orders";
+        try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
+            if (rs.next()) return rs.getInt("total");
+        } catch (SQLException e) { e.printStackTrace(); }
+        return 0;
+    }
+
+    /** إجمالي عدد العملاء المسجلين */
+    public int getTotalCustomersCount() {
+        String sql = "SELECT COUNT(*) AS total FROM customers";
+        try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
+            if (rs.next()) return rs.getInt("total");
+        } catch (SQLException e) { e.printStackTrace(); }
+        return 0;
+    }
+
     // 4. تقرير نشاط العملاء — عدد الطلبات وإجمالي الإنفاق لكل عميل
     public List<Object[]> getCustomerActivity() {
         List<Object[]> list = new ArrayList<>();
@@ -719,6 +757,5 @@ public class DatabaseManager {
         } catch (SQLException e) { e.printStackTrace(); }
         return list;
     }
-
 
 }

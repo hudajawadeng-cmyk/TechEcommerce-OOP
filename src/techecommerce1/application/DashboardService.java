@@ -1,5 +1,7 @@
 package techecommerce1.application;
 
+import techecommerce1.dal.DatabaseManager;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,20 +12,32 @@ import java.util.List;
  *
  * أي واجهة (مثل OrdersFrame أو TrackShipmentFrame) تقدر تسجل نفسها
  * كمراقب (OrderObserver) وتتعلم أوتوماتيكياً كل ما تتبدل حالة طلب.
+ *
+ * كل الأرقام دبا حقيقية من قاعدة البيانات (مش قيم وهمية ثابتة).
  */
 public class DashboardService {
 
+    private final DatabaseManager db = DatabaseManager.getInstance();
     private final List<OrderObserver> observers = new ArrayList<>();
 
-    private int totalProducts = 50;     // سيتم استبدالها لاحقاً بجلب البيانات من DB
-    private double totalSales = 1500.50;
-
+    /** إجمالي عدد المنتجات في الكتالوج */
     public int getTotalProducts() {
-        return totalProducts;
+        return db.getTotalProductsCount();
     }
 
+    /** إجمالي المبيعات (الإيرادات) من كل الطلبات */
     public double getTotalSales() {
-        return totalSales;
+        return db.getTotalRevenue();
+    }
+
+    /** إجمالي عدد الطلبات في النظام */
+    public int getTotalOrders() {
+        return db.getTotalOrdersCount();
+    }
+
+    /** إجمالي عدد العملاء المسجلين */
+    public int getTotalCustomers() {
+        return db.getTotalCustomersCount();
     }
 
     /** تسجيل مراقب جديد (مثلاً واجهة تعرض حالة الطلب) */
@@ -40,12 +54,9 @@ public class DashboardService {
 
     /**
      * تُستدعى عند تحديث حالة طلب (من DAL بعد تعديل قاعدة البيانات).
-     * تحدّث إحصائيات الداشبورد ثم تعلم كل المراقبين المسجلين.
+     * تعلم كل المراقبين المسجلين — الأرقام تتحسب حية من DB عند كل استدعاء getter.
      */
     public void onOrderStatusChanged(String trackingId, String newStatus) {
-        if ("مكتمل".equals(newStatus)) {
-            // مكان لإعادة حساب totalSales فعلياً من DB لاحقاً
-        }
         notifyObservers(trackingId, newStatus);
     }
 
