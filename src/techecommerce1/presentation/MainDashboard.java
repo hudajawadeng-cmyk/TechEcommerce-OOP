@@ -14,8 +14,7 @@ public class MainDashboard extends JFrame {
     private String userId;
     private String userEmail;
     private String userRole;
-
-
+    private JPanel rightBar;
 
     public MainDashboard( String userId,String userEmail, String userRole) {
         this.userId = userId;
@@ -32,6 +31,8 @@ public class MainDashboard extends JFrame {
     }
 
     private void initComponents() {
+        // ضبط الاتجاه ليكون من اليمين لليسار (RTL) لدعم العربية
+        this.applyComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
         JPanel root = new JPanel(new BorderLayout(0, 0)) {
             @Override protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g;
@@ -68,13 +69,23 @@ public class MainDashboard extends JFrame {
         JPanel userInfo = new JPanel(new GridLayout(2, 1));
         userInfo.setOpaque(false);
         JLabel emailLbl = new JLabel(userEmail, SwingConstants.RIGHT);
-        emailLbl.setFont(new Font("Arial", Font.PLAIN, 14));
+        emailLbl.setFont(new Font("SansSerif", Font.BOLD, 14));
         emailLbl.setForeground(new Color(200, 235, 255));
         JLabel roleLbl = new JLabel("[ " + userRole.toUpperCase() + " ]", SwingConstants.RIGHT);
-        roleLbl.setFont(new Font("Arial", Font.BOLD, 13));
+        roleLbl.setFont(new Font("SansSerif", Font.BOLD, 13));
         roleLbl.setForeground(userRole.equals("مسؤول") ? new Color(255, 200, 50) : new Color(0, 240, 180));
         userInfo.add(emailLbl);
         userInfo.add(roleLbl);
+        JButton reportsBtn = new JButton("📊 التقارير الإحصائية");
+        if (userRole.equals("Admin")) {
+        // ابحثي عن المكان الذي تضيفين فيه الأزرار الأخرى وأضيفي هذا:
+
+        reportsBtn.addActionListener(e -> {
+            // فتح واجهة التقارير عند الضغط
+            new ReportsFrame().setVisible(true);
+        });
+
+        }
 
         JButton logoutBtn = makeGhostButton("الخروج");
         logoutBtn.addActionListener(e -> { new LoginFrame().setVisible(true); dispose(); });
@@ -83,6 +94,8 @@ public class MainDashboard extends JFrame {
         rightBar.setOpaque(false);
         rightBar.add(userInfo);
         rightBar.add(logoutBtn);
+        rightBar.add(reportsBtn);
+
 
         topBar.add(logo, BorderLayout.WEST);
         topBar.add(rightBar, BorderLayout.EAST);
@@ -94,7 +107,7 @@ public class MainDashboard extends JFrame {
         navWrap.setBorder(BorderFactory.createEmptyBorder(24, 24, 16, 24));
 
         JLabel sectionTitle = new JLabel("الوصول السريع");
-        sectionTitle.setFont(new Font("Arial", Font.BOLD, 15));
+        sectionTitle.setFont(new Font("SansSerif", Font.BOLD, 15));
         sectionTitle.setForeground(TEXT_DIM);
         sectionTitle.setBorder(BorderFactory.createEmptyBorder(0, 0, 14, 0));
         navWrap.add(sectionTitle, BorderLayout.NORTH);
@@ -102,39 +115,40 @@ public class MainDashboard extends JFrame {
         JPanel grid = new JPanel(new GridLayout(3, 2, 16, 16));
         grid.setOpaque(false);
 
+
         // Row 1 – always visible
         grid.add(makeCard("تصفح المنتجات", "🛍",
                 "استكشف كتالوج المنتجات التقنية بالكامل",
-                new Color(0, 120, 190), e -> new ProductListFrame(userRole).setVisible(true)));
+                new Color(0, 120, 190),new Font("SansSerif", Font.BOLD, 18), e -> new ProductListFrame(userRole, userId).setVisible(true)));
 
         grid.add(makeCard("سلة التسوق", "🛒",
                 "عرض العناصر في سلتك واتمام الشراء",
-                new Color(210, 110, 0), e -> new ShoppingCartFrame(userId).setVisible(true)));
+                new Color(210, 110, 0),new Font("SansSerif", Font.BOLD, 18), e -> new ShoppingCartFrame(userId).setVisible(true)));
 
         // Row 2
         grid.add(makeCard("طلباتي", "📦",
                 "تتبع وادارة سجل طلباتك",
-                new Color(0, 140, 90), e -> new OrdersFrame(userEmail , userId).setVisible(true)));
+                new Color(0, 140, 90),new Font("SansSerif", Font.BOLD, 18), e -> new OrdersFrame(userEmail , userId).setVisible(true)));
 
         grid.add(makeCard("تقييمات المنتجات", "⭐",
                 "قراءة وكتابة مراجعات المنتجات",
-                new Color(130, 50, 210), e -> new ReviewsFrame(userId).setVisible(true)));
+                new Color(130, 50, 210),new Font("SansSerif", Font.BOLD, 18), e -> new ReviewsFrame(userId).setVisible(true)));
 
         // Row 3 – role-based
         if (userRole.equals("Admin")) {
             grid.add(makeCard("اضافة منتج", "➕",
                     "اضافة منتج جديد الى الكتالوج",
-                    new Color(0, 125, 190), e -> new AddProductFrame().setVisible(true)));
+                    new Color(0, 125, 190),new Font("SansSerif", Font.BOLD, 18), e -> new AddProductFrame().setVisible(true)));
             grid.add(makeCard("ادارة المخزون", "📊",
                     "مراقبة مستويات المخزون والتنبيهات",
-                    new Color(70, 75, 170), e -> new InventoryFrame(userId).setVisible(true)));
+                    new Color(70, 75, 170),new Font("SansSerif", Font.BOLD, 18), e -> new InventoryFrame(userId).setVisible(true)));
         } else {
             grid.add(makeCard("ملفي الشخصي", "👤",
                     "عرض وتحديث بيانات حسابك الشخصي",
-                    new Color(0, 125, 190), e -> new ProfileFrame(userEmail , userId).setVisible(true)));
+                    new Color(0, 125, 190),new Font("SansSerif", Font.BOLD, 18), e -> new ProfileFrame(userEmail , userId).setVisible(true)));
             grid.add(makeCard("تتبع الشحنات", "🚚",
                     "تتبع فوري ومباشر لحالة طلباتك",
-                    new Color(70, 75, 170), e -> new TrackShipmentFrame(userId).setVisible(true)));
+                    new Color(70, 75, 170),new Font("SansSerif", Font.BOLD, 18), e -> new TrackShipmentFrame(userId).setVisible(true)));
         }
 
         navWrap.add(grid, BorderLayout.CENTER);
@@ -150,7 +164,7 @@ public class MainDashboard extends JFrame {
         statusBar.setPreferredSize(new Dimension(0, 28));
         statusBar.setBorder(BorderFactory.createEmptyBorder(0, 18, 0, 18));
         JLabel statusLbl = new JLabel("TechCommerce Platform ", SwingConstants.LEFT);
-        statusLbl.setFont(new Font("Monospaced", Font.PLAIN, 22));
+        statusLbl.setFont(new Font("Monospaced", Font.PLAIN, 12));
         statusLbl.setForeground(TEXT_DIM);
         statusBar.add(statusLbl, BorderLayout.WEST);
         root.add(statusBar, BorderLayout.SOUTH);
@@ -160,7 +174,7 @@ public class MainDashboard extends JFrame {
 
     // ── Card factory ─────────────────────────────────────────────
     private JPanel makeCard(String title, String icon, String desc,
-                            Color accent, ActionListener action) {
+                            Color accent,Font font, ActionListener action) {
         JPanel card = new JPanel(new BorderLayout(0, 8)) {
             boolean hovered = false;
             {
@@ -189,11 +203,11 @@ public class MainDashboard extends JFrame {
         card.setBorder(BorderFactory.createEmptyBorder(16, 20, 16, 16));
 
         JLabel iconLbl = new JLabel(icon + "  " + title);
-        iconLbl.setFont(new Font("Segoe UI Emoji", Font.BOLD, 17));
+        iconLbl.setFont(new Font("SansSerif", Font.BOLD, 17));
         iconLbl.setForeground(accent);
 
         JLabel descLbl = new JLabel("<html>" + desc + "</html>");
-        descLbl.setFont(new Font("Arial", Font.PLAIN, 13));
+        descLbl.setFont(new Font("SansSerif", Font.PLAIN, 13));
         descLbl.setForeground(TEXT_DIM);
 
         card.add(iconLbl, BorderLayout.NORTH);

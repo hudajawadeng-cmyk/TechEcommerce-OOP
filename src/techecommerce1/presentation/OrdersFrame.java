@@ -1,5 +1,6 @@
 package techecommerce1.presentation;
 
+import techecommerce1.application.OrderObserver;
 import techecommerce1.dal.DatabaseManager;
 
 import javax.swing.*;
@@ -9,7 +10,7 @@ import java.util.List;
 
 import static techecommerce1.presentation.LoginFrame.*;
 
-public class OrdersFrame extends JFrame {
+public class OrdersFrame extends JFrame implements OrderObserver {
 
     private JTable ordersTable;
     private DefaultTableModel tableModel;
@@ -205,5 +206,10 @@ public class OrdersFrame extends JFrame {
         JOptionPane.showMessageDialog(this,
                 tableModel.getValueAt(sel,2) + " added to cart for reorder! 🛒",
                 "Reorder", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    @Override
+    public void update(String trackingId, String newStatus) {
+
     }
 }

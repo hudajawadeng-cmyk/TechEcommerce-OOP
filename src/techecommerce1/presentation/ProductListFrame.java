@@ -15,10 +15,12 @@ public class ProductListFrame extends JFrame {
     private DefaultTableModel tableModel;
     private JTextField searchField;
     private String userRole;
+    private String userId;
     private DatabaseManager db;
 
-    public ProductListFrame(String userRole) {
+    public ProductListFrame(String userRole, String userId) {
         this.userRole = userRole;
+        this.userId = userId;
         this.db  = DatabaseManager.getInstance();
         setTitle("TechCommerce — Browse Products");
         setSize(840, 580);
@@ -186,7 +188,22 @@ public class ProductListFrame extends JFrame {
         if (sel == -1) { JOptionPane.showMessageDialog(this,"Select a product first.","Warning",JOptionPane.WARNING_MESSAGE); return; }
         String status = tableModel.getValueAt(sel,6).toString();
         if (status.equals("Out of Stock")) { JOptionPane.showMessageDialog(this,"This product is out of stock.","Unavailable",JOptionPane.WARNING_MESSAGE); return; }
-        JOptionPane.showMessageDialog(this, tableModel.getValueAt(sel,1) + " added to cart! 🛒","Cart",JOptionPane.INFORMATION_MESSAGE);
+
+        String productId = tableModel.getValueAt(sel,0).toString();
+        String productName = tableModel.getValueAt(sel,1).toString();
+
+        boolean added = false;
+        if (db.isConnected() && userId != null) {
+            added = db.addToCart(userId, productId, 1);
+        }
+
+        if (added) {
+            JOptionPane.showMessageDialog(this, productName + " اضافة الى سلة التسوق! 🛒", "Cart", JOptionPane.INFORMATION_MESSAGE);
+        } else if (db.isConnected()) {
+            JOptionPane.showMessageDialog(this, "❌ Failed to add product to cart. Check Console for details.", "Error", JOptionPane.ERROR_MESSAGE);
+        } else {
+            JOptionPane.showMessageDialog(this, "⚠ Not connected to database (Demo mode).", "Not Connected", JOptionPane.WARNING_MESSAGE);
+        }
     }
 
     private void handleViewDetails() {

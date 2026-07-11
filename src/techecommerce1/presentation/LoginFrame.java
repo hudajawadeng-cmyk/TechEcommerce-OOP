@@ -330,5 +330,25 @@ public class LoginFrame extends JFrame {
         // بمجرد تحديث الحالة، سيتلقى العميل إشعاراً تلقائياً في الكونسول دون استدعاء يدوي للعميل!
         shipping.updateStatus("SHIPPED");
         shipping.updateStatus("DELIVERED");
+
+
+            // تعريب الخطوط الأساسية في النظام
+            Font arabicFont = new Font("Arial", Font.PLAIN, 16);
+            UIManager.put("Label.font", arabicFont);
+            UIManager.put("Button.font", arabicFont);
+            UIManager.put("TextField.font", arabicFont);
+            UIManager.put("Table.font", arabicFont);
+
+            // ضبط اتجاه الواجهات ليكون من اليمين لليسار (RTL)
+            UIManager.put("Panel.componentOrientation", ComponentOrientation.RIGHT_TO_LEFT);
+            UIManager.put("Frame.componentOrientation", ComponentOrientation.RIGHT_TO_LEFT);
+
+            // تشغيل التطبيق
+            SwingUtilities.invokeLater(() -> new LoginFrame().setVisible(true));
+
+
+        UIManager.put("Label.font", new Font("SansSerif", Font.PLAIN, 14));
+        UIManager.put("Button.font", new Font("SansSerif", Font.PLAIN, 14));
+        UIManager.put("Table.font", new Font("SansSerif", Font.PLAIN, 14));
     }
 }

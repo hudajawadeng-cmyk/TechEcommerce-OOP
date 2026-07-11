@@ -1,5 +1,7 @@
 package techecommerce1.dal;
 
+import techecommerce1.domain.Product;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -208,6 +210,10 @@ public class DatabaseManager {
         try {
             // Resolve category_id from name
             String catId = getCategoryId(categoryName);
+            if (catId == null) {
+                System.err.println("[DB] addProduct failed: category '" + categoryName + "' not found in categories table.");
+                return false;
+            }
             String sql = "INSERT INTO products(product_id,name,brand,price,specifications,category_id,stock_quantity)"
                     + " VALUES(?,?,?,?,?,?,?)";
             PreparedStatement ps = conn.prepareStatement(sql);
@@ -658,4 +664,61 @@ public class DatabaseManager {
         } catch (SQLException e) { e.printStackTrace(); }
         return list;
     }
+    // 1. تقرير المنتجات الأكثر مبيعاً
+    public List<Object[]> getBestSellingProducts() {
+        List<Object[]> list = new ArrayList<>();
+        String sql = "SELECT p.name, SUM(o.quantity) as total_sold " +
+                "FROM products p JOIN order_items o ON p.product_id = o.product_id " +
+                "GROUP BY p.name ORDER BY total_sold DESC LIMIT 5";
+        try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                list.add(new Object[]{rs.getString("name"), rs.getInt("total_sold")});
+            }
+        } catch (SQLException e) { e.printStackTrace(); }
+        return list;
+    }
+
+    // 2. تقرير المخزون المنخفض
+    public List<Object[]> getLowStockProducts() {
+        List<Object[]> list = new ArrayList<>();
+        String sql = "SELECT name, stock_quantity FROM products WHERE stock_quantity < 5";
+        try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                list.add(new Object[]{rs.getString("name"), rs.getInt("stock_quantity")});
+            }
+        } catch (SQLException e) { e.printStackTrace(); }
+        return list;
+    }
+    // 3. إجمالي الإيرادات (مطلوبة لتقرير المبيعات في ReportService)
+    public double getTotalRevenue() {
+        String sql = "SELECT COALESCE(SUM(oi.quantity * p.price), 0) AS total "
+                + "FROM order_items oi JOIN products p ON oi.product_id = p.product_id";
+        try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
+            if (rs.next()) return rs.getDouble("total");
+        } catch (SQLException e) { e.printStackTrace(); }
+        return 0.0;
+    }
+    // 4. تقرير نشاط العملاء — عدد الطلبات وإجمالي الإنفاق لكل عميل
+    public List<Object[]> getCustomerActivity() {
+        List<Object[]> list = new ArrayList<>();
+        String sql = "SELECT u.name AS customer_name, "
+                + "COUNT(DISTINCT o.order_id) AS order_count, "
+                + "COALESCE(SUM(oi.quantity * p.price), 0) AS total_spent "
+                + "FROM users u "
+                + "JOIN orders o ON u.user_id = o.customer_id "
+                + "JOIN order_items oi ON o.order_id = oi.order_id "
+                + "JOIN products p ON oi.product_id = p.product_id "
+                + "GROUP BY u.name "
+                + "ORDER BY total_spent DESC";
+        try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                String summary = rs.getInt("order_count") + " طلب — "
+                        + rs.getDouble("total_spent") + " د.ل";
+                list.add(new Object[]{rs.getString("customer_name"), summary});
+            }
+        } catch (SQLException e) { e.printStackTrace(); }
+        return list;
+    }
+
+
 }
